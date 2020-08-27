@@ -1,70 +1,62 @@
-const express = require("express")
-const bodyParser = require("body-parser")
+const express = require("express");
+const mysql = require("mysql");
+const dbConfig = require("./config/database.js");
+const connection = mysql.createConnection(dbConfig);
+const bodyParser = require("body-parser");
 
 const server = express();
 
-//서버로 받는 바디를 추출해 json 형태로 바꾸어줌
 server.use(bodyParser.json())
 
-const users = [
-    {
-        id:"asdfasdf",
-        name:"Dave",
-        age:17
-    },
-    {
-        id:"fasffa",
-        name:"Gong",
-        age:17  
-    }
-]
+server.get("/location",(req,res)=>{
+    connection.query('SELECT * FROM location', (error, rows)=>{
+        if(error) throw error;
+        console.log('Location info is: ', rows);
+        res.send(rows);
+    });
+});
 
 
-//get 메소드로 api/user가 올 경우 users를 응답
-server.get("/api/user",(req,res)=>{
-    res.json(users);
-})
+server.get("/location/:token",(req,res)=>{
+    connection.query('SELECT * FROM location WHERE token=\''+req.params.token+'\'', (error, rows)=>{
+        if(error) throw error;
+        console.log('Location info is: ', rows);
+        res.send(rows)
+    });
+});
 
-//id로 특정 유저 반환. 주의점: express에서는 맨위에서부터 순차적으로 검사. 큰 목록부터 위에서
-//:id는 request의 params(매개변수들) 중 id로 접근 가능
-server.get("/api/user/:id",(req,res)=>{
-    const user = users.find((u)=>{ //users 중에 params.id랑 같은걸 찾음
-        return u.id === req.params.id;
-    })
-    if(user){
-        res.json(user)
-    }else{
-        res.status(404).json({errorMessage:"There is no user."});
-    }
-})
-
-server.post("/api/user",(req,res)=>{
-    users.push(req.body);
-    res.json(users);
+//?를 사용하면 query 함수에서 전달받은 params를 매핑해줌
+server.post("/location",(req,res)=>{
+    var sql = 'INSERT INTO location VALUES (?,?,?)';
+    var params = [req.body.token,req.body.latitude, req.body.longitude];
+    connection.query(sql, params, (error, rows)=>{
+        if(error) throw error;
+        console.log('Location info is: ', rows);
+        res.send(rows);
+    });
 })
 
 
 //url로 id를 전달해주고 body에 바꾸고 싶은 필드를 적으면 업데이트됨
-server.put("/api/user/:id",(req,res)=>{
-    let index = users.findIndex(u=>u.id===req.params.id)
-    if(index===-1){
-        res.json({errorMesage:"Error"});
-    }else{
-        users[index] = {...users[index],...req.body};
-        res.json(users[index]);
-    }
+server.put("/location/:token",(req,res)=>{
+    var sql = 'UPDATE location SET latitude='+req.body.latitude+', longitude='+req.body.longitude+' WHERE token=\''+req.params.token+"\'";
+    connection.query(sql, (error, rows)=>{
+        if(error) throw error;
+        console.log('Location info is: ', rows);
+        res.send(rows);
+    });
 })
 
-server.delete("/api/user/:id",(req,res)=>{
-    let index = users.findIndex(u=>u.id===req.params.id)
-    if(index===-1){
-        res.json({errorMesage:"Error"});
-    }else{
-        let foundUser = users.splice(index,1); //인덱스로 부터 한칸을 제거
-        res.json(foundUser[0])
-    }
+server.delete("/location/:token",(req,res)=>{
+    var sql = 'DELETE FROM location WHERE token=\''+req.params.token+'\'';
+    connection.query(sql, (error, rows)=>{
+        if(error) throw error;
+        console.log('Location info is: ', rows);
+        res.send(rows);
+    });
 })
 
 server.listen(3000, ()=>{
     console.log("the server is running")
 })
+
