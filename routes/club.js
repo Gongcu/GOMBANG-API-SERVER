@@ -35,7 +35,7 @@ connection.connect();
 router.post('/', uploader.single('img'), (req, res, next) => {
     //req.file은 팡리 정보
     //text 정보는 req.body가 포함
-    connection.query('INSERT INTO posts(img) VALUE (\'' + req.file.filename + '\')', (error, rows) => {
+    connection.query('INSERT INTO clubs(c_name,c_image) VALUE (\''+req.body.c_name+'\',\'' + req.file.filename + '\')', (error, rows) => {
         if (error) {
             fs.unlink('/upload/req.file.filename}', (err) => {
                 console.log('file upload error:file unlink');
@@ -47,22 +47,25 @@ router.post('/', uploader.single('img'), (req, res, next) => {
     });
 });
 
-router.get('/:filename',(req,res)=>{
-    fs.readFile(appDir+'/upload/'+req.params.filename, (err, data)=>{
-        if(err){
-            throw err;
-        }
-        res.writeHead(200, {'Content-Type':'image/png'})
-        res.write(data);
-        res.end();
-    });
+router.get('/:c_name',(req,res)=>{
+    connection.query('SELECT * FROM clubs WHERE c_name=\''+req.params.c_name+'\'', (error, rows)=>{
+        if(error) console.log(error);
+        fs.readFile(appDir+'/upload/'+rows[0].c_image, (err, data)=>{
+            if(err){
+                throw err;
+            }
+            res.writeHead(200, {'Content-Type':'image/png'})
+            res.write(data);
+            res.end();
+        });
+    })
 });
 
 
 
 router.get('/',(req,res)=>{
     console.log(appDir);
-    connection.query('SELECT * FROM posts', (error, rows)=>{
+    connection.query('SELECT * FROM clubs', (error, rows)=>{
         if(error){
             res.send("cannot access db");
             throw error;
