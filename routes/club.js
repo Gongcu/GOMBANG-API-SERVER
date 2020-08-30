@@ -32,6 +32,15 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
+router.post('/image',uploader.single('img'),async(req,res,next)=>{
+    try{
+        res.send(req.file.filename);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 router.post('/',uploader.single('img'),async(req,res,next)=>{
     try{
         const club = await Club.create({
