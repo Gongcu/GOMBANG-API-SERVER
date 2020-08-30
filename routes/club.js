@@ -1,4 +1,72 @@
 const express = require('express');
+const Club = require('../schemas/club');
+const bodyParser = require('body-parser');
+const multer = require('multer');
+const path = require('path');
+const uploader = multer({
+    storage: multer.diskStorage({
+        destination(req,file,cb){
+            cb(null, 'upload/');
+        },
+        filename(req,file,cb){
+            const ext = path.extname(file.originalname);
+            cb(null, path.basename(file.originalname,ext)+Date.now()+ext);
+        }
+    }),
+    limits: {fileSize: 5*1024*1024},
+});
+const fs = require('fs');
+var appDir = path.dirname(require.main.filename);
+
+const router = express.Router();
+router.use(bodyParser.json());
+
+router.get('/',async(req,res,next)=>{
+    try{
+        const club = await Club.find({});
+        res.send(club);
+        //const result = await Club.populate(club, {path:'member_uid_list'});
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+router.post('/',uploader.single('img'),async(req,res,next)=>{
+    try{
+        const club = await Club.create({
+            name: req.body.name,
+            image: req.file.filename,
+            president_uid: req.body.president_uid,
+            member_uid_list: req.body.member_uid_list,
+            certification: req.body.certification,
+            type:req.body.type,
+            classfication:req.body.classfication,
+            member_count:req.body.member_count,
+            member_uid_list:req.body.member_uid_list,
+            recruitment:req.body.recruitment
+        });
+        res.send(club);
+        //const result = await Club.populate(club, {path:'member_uid_list'});
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+router.delete('/:name',async(req,res,next)=>{
+    try{
+        const club = await Club.remove({name:req.params.name});
+        res.send(club);
+        //const result = await Club.populate(club, {path:'member_uid_list'});
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+/*const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -74,5 +142,5 @@ router.get('/',(req,res)=>{
         }
     })
 });
-
+*/
 module.exports = router;
