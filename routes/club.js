@@ -31,17 +31,41 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
+router.get('/:name',async(req,res,next)=>{
+    try{
+        const club = await Club.find({name:req.params.name});
+        res.send(club);
+        //const result = await Club.populate(club, {path:'member_uid_list'});
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+router.get('/image/:filename',async(req,res)=>{
+    fs.readFile(appDir+'/upload/'+req.params.filename, (err, data)=>{
+        if(err){
+            throw err;
+        }
+        res.writeHead(200, {'Content-Type':'image/png'})
+        res.write(data);
+        res.end();
+    });
+});
+
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
         const body = JSON.parse(req.body.json)
         const club = await Club.create({
             name: body.name,
             image: req.file.filename,
+            campus: req.body.campus,
             president_uid: body.president_uid,
             member_uid_list: body.member_uid_list,
             certification: body.certification,
             type:body.type,
             classification:body.classification,
+            membership_fee:body.membership_fee,
             member_count:body.member_count,
             member_uid_list:body.member_uid_list,
             recruitment:body.recruitment
@@ -56,7 +80,12 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
 
 router.delete('/:name',async(req,res,next)=>{
     try{
+        const obj = await Club.findOne({name:req.params.name});
         const club = await Club.remove({name:req.params.name});
+        const filename = obj.image;
+        fs.unlink(appDir+'/upload/'+filename, (err) => {
+            console.log(err);
+        });
         res.send(club);
         //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){

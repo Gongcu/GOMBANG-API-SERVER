@@ -9,6 +9,9 @@ const clubSchema = new Schema({
     image:{
         type: String,
     },
+    campus:{
+        type: String,
+    },
     president_uid:{
         type: String,
     },
@@ -24,10 +27,15 @@ const clubSchema = new Schema({
     },
     type:{
         type: String,
+        default:"",
     },
     classification:{
         type: String,
         default: "",
+    },
+    membership_fee:{
+        type: Number,
+        default: 0,
     },
     member_count:{
         type: Number,
@@ -51,6 +59,7 @@ module.exports = mongoose.model('Club', clubSchema,'club');
 {
     "name": "이지스",
     "image": "http:.....",
+    "campus": "죽전",
     "president_uid": "a1233jnb",
     "manager_uid_list":[
         'ba142424f',
