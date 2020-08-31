@@ -8,6 +8,7 @@ const club = require('./routes/club');
 
 connect();
 
+app.use(express.json({limit:'25mb'}));
 app.use('/location', location);
 app.use('/post', post);
 app.use('/user', user);

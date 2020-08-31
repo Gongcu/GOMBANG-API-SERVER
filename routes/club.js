@@ -19,7 +19,6 @@ const fs = require('fs');
 var appDir = path.dirname(require.main.filename);
 
 const router = express.Router();
-router.use(bodyParser.json());
 
 router.get('/',async(req,res,next)=>{
     try{
@@ -32,28 +31,20 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
-router.post('/image',uploader.single('img'),async(req,res,next)=>{
+router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
-        res.send(req.file.filename);
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
-router.post('/',uploader.single('img'),async(req,res,next)=>{
-    try{
+        const body = JSON.parse(req.body.json)
         const club = await Club.create({
-            name: req.body.name,
+            name: body.name,
             image: req.file.filename,
-            president_uid: req.body.president_uid,
-            member_uid_list: req.body.member_uid_list,
-            certification: req.body.certification,
-            type:req.body.type,
-            classfication:req.body.classfication,
-            member_count:req.body.member_count,
-            member_uid_list:req.body.member_uid_list,
-            recruitment:req.body.recruitment
+            president_uid: body.president_uid,
+            member_uid_list: body.member_uid_list,
+            certification: body.certification,
+            type:body.type,
+            classification:body.classification,
+            member_count:body.member_count,
+            member_uid_list:body.member_uid_list,
+            recruitment:body.recruitment
         });
         res.send(club);
         //const result = await Club.populate(club, {path:'member_uid_list'});

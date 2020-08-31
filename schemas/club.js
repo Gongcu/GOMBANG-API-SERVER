@@ -25,8 +25,9 @@ const clubSchema = new Schema({
     type:{
         type: String,
     },
-    classfication:{
+    classification:{
         type: String,
+        default: "",
     },
     member_count:{
         type: Number,
@@ -42,9 +43,9 @@ const clubSchema = new Schema({
         type:Boolean,
         default:false
     }    
-});
+},{strict:false});
 
-module.exports = mongoose.model('Club', clubSchema);
+module.exports = mongoose.model('Club', clubSchema,'club');
 
 /*
 {
