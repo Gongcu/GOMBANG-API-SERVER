@@ -4,7 +4,7 @@ const connect = () =>{
     if(process.env.NODE_ENV !== 'production'){ //개발환경일 경우에만 콘솔 출력
         mongoose.set('debug',true);
     }
-    mongoose.connect('mongodb://root:1234@localhost:27017/admin',{
+    mongoose.connect('mongodb://'+process.env.DB_USER+':'+process.env.DB_PASSWORD+'@localhost:27017/admin',{
         dbName:'test',
         useNewUrlParser: true,
         useUnifiedTopology: true,
