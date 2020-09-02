@@ -6,17 +6,17 @@ const userSchema = new Schema({
     name:{
         type: String,
     },
-    profile:{
+    image:{
         type: String,
     },
     email:{
         type: String,
     },
-    uid:{
+    snsId:{
         type: String,
         required:true
     },
-    birthday:{
+    birth:{
         type: String
     },
     phone:{

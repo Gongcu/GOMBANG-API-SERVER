@@ -1,5 +1,5 @@
 const express = require('express');
-const Club = require('../schemas/club');
+const Event = require('../schemas/event');
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -21,28 +21,26 @@ const router = express.Router();
 
 router.get('/',async(req,res,next)=>{
     try{
-        const club = await Club.find({});
-        if(club.length===0){
+        const event = await Event.find({});
+        if(event.length===0){
             res.send('empty');
         }else{
-            res.send(club);
+            res.send(event);
         }
-        //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-router.get('/:name',async(req,res,next)=>{
+router.get('/:id',async(req,res,next)=>{
     try{
-        const club = await Club.find({name:req.params.name});
-        if(club.length===0){
+        const event = await Event.find({_id:req.params.id});
+        if(event.length===0){
             res.send('empty');
         }else{
-            res.send(club);
+            res.send(event);
         }
-        //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){
         console.error(err);
         next(err);
@@ -60,7 +58,8 @@ router.get('/image/:filename',async(req,res)=>{
         res.end();
     });
 });
-
+/*
+* TO-DO
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
         const body = JSON.parse(req.body.json)
@@ -78,28 +77,23 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
             member_uid_list:body.member_uid_list,
             recruitment:body.recruitment
         });
-        if(club.length===0){
-            res.send('club create failed')
-        }else{
-            res.send(club);
-        }
+        res.send(club);
         //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){
         console.error(err);
         next(err);
     }
 });
-
-router.delete('/:name',async(req,res,next)=>{
+*/
+router.delete('/:id',async(req,res,next)=>{
     try{
-        const obj = await Club.findOne({name:req.params.name});
-        const club = await Club.remove({name:req.params.name});
+        const obj = await Event.findOne({_id:req.params.id});
+        const event = await Event.remove({_id:req.params.id});
         const filename = obj.image;
         fs.unlink(appDir+'/upload/'+filename, (err) => {
             console.log(err);
         });
-        res.send(club);
-        //const result = await Club.populate(club, {path:'member_uid_list'});
+        res.send(event);
     }catch(err){
         console.error(err);
         next(err);
