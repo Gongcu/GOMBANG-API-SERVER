@@ -33,11 +33,21 @@ const eventSchema = new Schema({
             ref:"User"
         }
     ],
-    attend_count:{
+    participation_fee:{
         type:Number,
         default:0,
     },
-    attendant_id_list:[
+    participation_count:{
+        type:Number,
+        default:0,
+    },
+    participation_id_list:[
+        {
+            type:ObjectId,
+            ref:"User"
+        }
+    ],
+    paid_id_list:[
         {
             type:ObjectId,
             ref:"User"
@@ -47,7 +57,7 @@ const eventSchema = new Schema({
         type:Number,
         default:0,
     },
-    commenter_id_list:[
+    comment_id_list:[
         {
             type:ObjectId,
             ref:"User"
@@ -57,21 +67,17 @@ const eventSchema = new Schema({
         type:String,
     },
     event_start_day:{
-        type:Date,
+        type:String,
     },
     event_end_day:{
-        type:Date,
+        type:String,
     },
     event_place:{
         type:String,
     },
     event_memo:{
         type:String,
-    },
-    createAt:{
-        type:Date,
-        default:Date.now,
-    }    
+    }
 },{strict:false});
 
 module.exports = mongoose.model('Event', eventSchema,'event');

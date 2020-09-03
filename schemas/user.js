@@ -8,22 +8,30 @@ const userSchema = new Schema({
     },
     image:{
         type: String,
+        default:"",
     },
     email:{
         type: String,
     },
-    snsId:{
+    email_certification:{
+        type:Boolean,
+    },
+    kakaoId:{
         type: String,
         required:true
     },
     birth:{
-        type: String
+        type: String,
     },
     phone:{
-        type: String
+        type: String,
     },
     student_number:{
-        type: Number
+        type: Number,
+    },
+    nickname:{
+        type:Map,
+        of:String,
     },
     signed_club_list:[
         {
@@ -37,29 +45,12 @@ const userSchema = new Schema({
             ref:"Club"
         }
     ],
+    certification:[
+        {
+            type:Boolean,
+            default:false
+        }
+    ],
 },{strict:false});
 
 module.exports = mongoose.model('User', userSchema,'user');
-
-/*
-{
-    "name": "이지스",
-    "image": "http:.....",
-    "campus": "죽전",
-    "president_uid": "a1233jnb",
-    "manager_uid_list":[
-        'ba142424f',
-        'cd41j223d'
-    ],
-    "certification": true,
-    "type":"중아동아리",
-    "exposure":false,
-    "classification":"학술",
-    "member_count": 100,
-    "member_uid_list":[
-        'vi124fasd',
-        'f42kalsjd',
-        ...
-    ],
-    "recruitment": true,
-}*/

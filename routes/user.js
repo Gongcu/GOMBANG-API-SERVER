@@ -52,17 +52,35 @@ router.get('/:id',async(req,res,next)=>{
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
         const body = JSON.parse(req.body.json)
-        const user = await User.create({
-            name: body.name,
-            image: req.file.filename,
-            email: body.email,
-            snsId: body.snsId,
-            birth: body.birth,
-            phone: body.phone,
-            student_number:body.student_number,
-            signed_club_list:body.signed_club_list,
-            favorite_club_list:body.favorite_club_list
-        });
+        var user;
+        if(req.file){
+            user = await User.create({
+                name: body.name,
+                image: req.file.filename,
+                email: body.email,
+                email_certification: body.email_certification,
+                kakaoId: body.kakaoId,
+                birth: body.birth,
+                phone: body.phone,
+                student_number: body.student_number,
+                nickname: body.nickname,
+                signed_club_list: body.signed_club_list,
+                favorite_club_list: body.favorite_club_list
+            });
+        } else {
+            user = await User.create({
+                name: body.name,
+                email: body.email,
+                email_certification: body.email_certification,
+                kakaoId: body.kakaoId,
+                birth: body.birth,
+                phone: body.phone,
+                student_number: body.student_number,
+                nickname: body.nickname,
+                signed_club_list: body.signed_club_list,
+                favorite_club_list: body.favorite_club_list
+            });
+        }
         if(user.length===0){
             res.send('user create failed')
         }else{
@@ -77,10 +95,9 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
 
 router.delete('/:id',async(req,res,next)=>{
     try{
-        const image = await User.findOne({_id:req.params.id},{_id:0, image:1});
         const user = await User.remove({_id:req.params.id});
-        if(image){
-            fs.unlink(appDir+'/upload/'+image, (err) => {
+        if(user.image){
+            fs.unlink(appDir+'/upload/'+user.image, (err) => {
                 console.log(err);
             });
         }
