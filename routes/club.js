@@ -58,6 +58,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 name: body.name,
                 image: req.file.filename,
                 campus: body.campus,
+                text: body.text,
                 president_uid: body.president_uid,
                 member_uid_list: body.member_uid_list,
                 certification: body.certification,
@@ -66,12 +67,14 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 membership_fee:body.membership_fee,
                 member_count:body.member_count,
                 member_uid_list:body.member_uid_list,
-                recruitment:body.recruitment
+                recruitment:body.recruitment,
+                hashtags:body.hashtags
             });
         }else{
             club = await Club.create({
                 name: body.name,
                 campus: body.campus,
+                text: body.text,
                 president_uid: body.president_uid,
                 member_uid_list: body.member_uid_list,
                 certification: body.certification,
@@ -80,7 +83,8 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 membership_fee:body.membership_fee,
                 member_count:body.member_count,
                 member_uid_list:body.member_uid_list,
-                recruitment:body.recruitment
+                recruitment:body.recruitment,
+                hashtags:body.hashtags
             });
         }
         
@@ -96,6 +100,19 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
+router.delete('/:id',async(req,res,next)=>{
+    try{
+        const club = await Club.remove({_id:req.params.id});
+        fs.unlink(appDir+'/upload/'+club.image, (err) => {
+            console.log(err);
+        });
+        res.send(club);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+/*
 router.delete('/:name',async(req,res,next)=>{
     try{
         const club = await Club.remove({name:req.params.name});
@@ -107,5 +124,5 @@ router.delete('/:name',async(req,res,next)=>{
         console.error(err);
         next(err);
     }
-});
+});*/
 module.exports = router;

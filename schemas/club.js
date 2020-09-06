@@ -12,6 +12,9 @@ const clubSchema = new Schema({
     campus:{
         type: String,
     },
+    text:{
+        type: String,
+    },
     president_uid:{
         type: String,
     },
@@ -50,7 +53,12 @@ const clubSchema = new Schema({
     recruitment:{
         type:Boolean,
         default:false
-    }    
+    },
+    hashtags:[
+        {
+            type:String
+        }
+    ]
 },{strict:false});
 
 module.exports = mongoose.model('Club', clubSchema,'club');

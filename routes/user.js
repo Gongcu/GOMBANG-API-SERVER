@@ -58,6 +58,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 name: body.name,
                 image: req.file.filename,
                 email: body.email,
+                token: body.token,
                 email_certification: body.email_certification,
                 kakaoId: body.kakaoId,
                 birth: body.birth,
@@ -71,6 +72,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
             user = await User.create({
                 name: body.name,
                 email: body.email,
+                token: body.token,
                 email_certification: body.email_certification,
                 kakaoId: body.kakaoId,
                 birth: body.birth,

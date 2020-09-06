@@ -10,6 +10,9 @@ const userSchema = new Schema({
         type: String,
         default:"",
     },
+    token:{
+        type: String,
+    },
     email:{
         type: String,
     },
