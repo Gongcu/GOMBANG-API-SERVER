@@ -1,6 +1,7 @@
 config/database.js
 config/mysql_session.js
-config/ndaccidentprevention-firebase-adminsdk-q5nfv-e3d299190c.js
+config/mysql_session.js
+config/serviceAccountKey.json
 upload
 node_modules
 .env

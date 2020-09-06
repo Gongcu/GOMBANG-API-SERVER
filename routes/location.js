@@ -10,49 +10,6 @@ connection.connect();
 
 router.use(bodyParser.json());
 
-router.get('/', (req, res) => {
-    const registrationToken = 'edW16yqA3GE:APA91bEFzk8-WXcIJj4qFTK03uvlNYoNLzYfFjar14-Ly-qvn2AlSHQx8wzbvE-m0mIVaGau4xQg5eU5s6yuSfMRhFIeyWhBdF1Pa-CSFRKZ6iyQ1jzh5AvElZtgVyeSWSOvsMLlhnZx';
-
-    const message = {
-        data: {
-            score: '850',
-            time: '2:45'
-        },
-        token: registrationToken
-    };
-
-    admin.messaging().send(message)
-        .then((response) => {
-            // Response is a message ID string.
-            console.log('Successfully sent message:', response);
-            res.send(response);
-        })
-        .catch((error) => {
-            console.log('Error sending message:', error);
-            res.send(error);
-        });
-
-});
-
-router.get("/accident",(req,res)=>{
-    res.send(req.body);
-    //const latitude = req.body.latitude;
-    //const longitude = req.body.longitude;
-
-    /*
-    const sql =`SELECT token,`
-    +`(6371*acos(cos(radians(${latitude}))*cos(radians(latitude))*cos(radians(longitude)-radians(${longitude}))`
-    +`+sin(radians(${latitude}))*sin(radians(latitude)))) AS distance `
-    //+'WHERE token <>: req.body.token'
-    +`FROM location `
-    +`HAVING distance < 1 ORDER BY distance`;
-    connection.query(sql, (error,rows)=>{
-        if(error) throw error;
-        res.send(rows);
-    });*/
-});
-
-
 router.get("/:token",(req,res)=>{
     connection.query('SELECT * FROM location WHERE token=\''+req.params.token+'\'', (error, rows)=>{
         if(error) throw error;
@@ -86,32 +43,42 @@ router.post("/",(req,res)=>{
     })
 })
 
-router.post('/accident',(req,res)=>{
+router.post('/accident', (req, res) => {
     var tokens;
+    const registrationToken = 'edW16yqA3GE:APA91bEFzk8-WXcIJj4qFTK03uvlNYoNLzYfFjar14-Ly-qvn2AlSHQx8wzbvE-m0mIVaGau4xQg5eU5s6yuSfMRhFIeyWhBdF1Pa-CSFRKZ6iyQ1jzh5AvElZtgVyeSWSOvsMLlhnZx';
+    console.log(req.body);
     const latitude = req.body.accidentLocation.latitude;
     const longitude = req.body.accidentLocation.longitude;
-    const trackedLocationList = req.body.locationInfoList
+    const trackedLocationList = JSON.stringify(req.body.locationInfoList);
+
+    const sql = `SELECT token,`
+        + `(6371*acos(cos(radians(${latitude}))*cos(radians(latitude))*cos(radians(longitude)-radians(${longitude}))`
+        + `+sin(radians(${latitude}))*sin(radians(latitude)))) AS distance `
+        //+'WHERE token <>: req.body.token'
+        + `FROM location `
+        + `HAVING distance < 1 ORDER BY distance`;
 
 
-    const sql =`SELECT token,`
-            +`(6371*acos(cos(radians(${latitude}))*cos(radians(latitude))*cos(radians(longitude)-radians(${longitude}))`
-            +`+sin(radians(${latitude}))*sin(radians(latitude)))) AS distance `
-            //+'WHERE token <>: req.body.token'
-            +`FROM location `
-            +`HAVING distance < 1 ORDER BY distance`;
-    connection.query(sql, (error,rows)=>{
-            if(error) throw error;
-            tokens=rows;
-            admin.messaging().send(trackedLocationList)
-                    .then((response)=>{
-                            console.log('successfully sent message:',response);
-                            res.send(response);
-                        })
-                        .catch((error)=>{
-                                console.log('Error sending message:',error);
-                                res.send(error);
-                        });
-        });
+    //얻어온 토큰이 한개냐 복수냐에 따라 다르게 코딩해야됨
+    connection.query(sql, (error, rows) => {
+        if (error) throw error;
+        tokens = rows;
+        const message = {
+            data: {
+                accidentInfo: trackedLocationList
+            },
+            token: registrationToken
+        };
+        admin.messaging().send(message)
+            .then((response) => {
+                console.log('successfully sent message:', response);
+                res.send(response);
+            })
+            .catch((error) => {
+                console.log('Error sending message:', error);
+                res.send(error);
+            });
+    });
 });
 
 
