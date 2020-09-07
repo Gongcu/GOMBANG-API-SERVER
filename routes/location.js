@@ -10,15 +10,6 @@ connection.connect();
 
 router.use(bodyParser.json());
 
-router.get("/:token",(req,res)=>{
-    connection.query('SELECT * FROM location WHERE token=\''+req.params.token+'\'', (error, rows)=>{
-        if(error) throw error;
-        console.log('Location info is: ', rows);
-        res.send(rows)
-    });
-});
-
-
 
 //?를 사용하면 query 함수에서 전달받은 params를 매핑해줌
 router.post("/",(req,res)=>{
@@ -44,9 +35,7 @@ router.post("/",(req,res)=>{
 })
 
 router.post('/accident', (req, res) => {
-    var tokens;
-    const registrationToken = 'edW16yqA3GE:APA91bEFzk8-WXcIJj4qFTK03uvlNYoNLzYfFjar14-Ly-qvn2AlSHQx8wzbvE-m0mIVaGau4xQg5eU5s6yuSfMRhFIeyWhBdF1Pa-CSFRKZ6iyQ1jzh5AvElZtgVyeSWSOvsMLlhnZx';
-    console.log(req.body);
+    var token = new Array();
     const latitude = req.body.accidentLocation.latitude;
     const longitude = req.body.accidentLocation.longitude;
     const trackedLocationList = JSON.stringify(req.body.locationInfoList);
@@ -58,18 +47,23 @@ router.post('/accident', (req, res) => {
         + `FROM location `
         + `HAVING distance < 1 ORDER BY distance`;
 
-
-    //얻어온 토큰이 한개냐 복수냐에 따라 다르게 코딩해야됨
     connection.query(sql, (error, rows) => {
         if (error) throw error;
-        tokens = rows;
-        const message = {
-            data: {
-                accidentInfo: trackedLocationList
-            },
-            token: registrationToken
-        };
-        admin.messaging().send(message)
+
+        if(rows.length ===0 ){
+            res.send('No car near the accident');
+        }
+        else{
+            for(var i=0; i<rows.length; i++)
+                token[i]=rows[i].token;
+            
+            const message = {
+                data: {
+                    accidentInfo: trackedLocationList
+                },
+                tokens: token
+            };
+            admin.messaging().sendMulticast(message)
             .then((response) => {
                 console.log('successfully sent message:', response);
                 res.send(response);
@@ -78,10 +72,9 @@ router.post('/accident', (req, res) => {
                 console.log('Error sending message:', error);
                 res.send(error);
             });
+        }
     });
 });
-
-
 
 
 router.delete("/",(req,res)=>{

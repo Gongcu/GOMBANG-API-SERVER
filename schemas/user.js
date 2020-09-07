@@ -18,6 +18,7 @@ const userSchema = new Schema({
     },
     email_certification:{
         type:Boolean,
+        default:false
     },
     kakaoId:{
         type: String,
