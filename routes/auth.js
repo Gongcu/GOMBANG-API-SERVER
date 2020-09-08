@@ -3,11 +3,18 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const path = require('path');
+const request = require('request');
 var appDir = path.dirname(require.main.filename);
 
+//하이퍼링크로 인증하기
+router.get('/mail/:student_number',async(req,res)=>{
+    console.log('인증완료');
+    res.send('인증완료');
+});
 
 router.post('/mail', async(req, res) => {
     let authNum = Math.random().toString().substr(2,6);
+    //let authurl = "http://localhost:3000/auth/mail/"+req.body.mail;
     let emailTemplete;
     ejs.renderFile(appDir+'/template/authMail.ejs', {authCode : authNum}, function (err, data) {
       if(err){console.log(err)}
