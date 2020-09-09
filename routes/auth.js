@@ -3,16 +3,25 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const path = require('path');
-const request = require('request');
+const User = require('../schemas/user')
 var appDir = path.dirname(require.main.filename);
 
-//하이퍼링크로 인증하기
-router.get('/mail/:student_number',async(req,res)=>{
-    console.log('인증완료');
-    res.send('인증완료');
+router.get('/login',async(req,res,next)=>{
+    try{
+        const user = await User.find({kakaoId:req.body.kakaoId});
+        if(user.length!==0){
+            await User.updateOne({kakaoId:req.body.kakaoId},{token:req.body.token})
+            res.send('true');
+        }else{
+            res.send('false');
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
 });
 
-router.post('/mail', async(req, res) => {
+router.get('/mail/:email', async(req, res) => {
     let authNum = Math.random().toString().substr(2,6);
     //let authurl = "http://localhost:3000/auth/mail/"+req.body.mail;
     let emailTemplete;
@@ -34,7 +43,7 @@ router.post('/mail', async(req, res) => {
 
     let mailOptions = await transporter.sendMail({
         from: `곰방`,
-        to: req.body.mail,
+        to: req.params.email,
         subject: '회원가입을 위한 인증번호를 입력해주세요.',
         html: emailTemplete,
     });

@@ -59,6 +59,8 @@ router.post('/accident', (req, res) => {
             
             const message = {
                 data: {
+                    latitude:latitude,
+                    longitude:longitude,
                     accidentInfo: trackedLocationList
                 },
                 tokens: token

@@ -16,10 +16,6 @@ const userSchema = new Schema({
     email:{
         type: String,
     },
-    email_certification:{
-        type:Boolean,
-        default:false
-    },
     kakaoId:{
         type: String,
         required:true
@@ -32,6 +28,15 @@ const userSchema = new Schema({
     },
     student_number:{
         type: Number,
+    },
+    login:{
+        type: Boolean,
+    },
+    college:{
+        type: String,
+    },
+    department:{
+        type: String,
     },
     nickname:{
         type:Map,
@@ -47,12 +52,6 @@ const userSchema = new Schema({
         {
             type:ObjectId,
             ref:"Club"
-        }
-    ],
-    certification:[
-        {
-            type:Boolean,
-            default:false
         }
     ],
 },{strict:false});

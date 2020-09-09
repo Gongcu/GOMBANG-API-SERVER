@@ -35,19 +35,6 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
-router.get('/:id',async(req,res,next)=>{
-    try{
-        const user = await User.find({_id:req.params.id});
-        if(user.length===0){
-            res.send('empty');
-        }else{
-            res.send(user);
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
 
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
@@ -59,10 +46,12 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 image: req.file.filename,
                 email: body.email,
                 token: body.token,
-                email_certification: body.email_certification,
                 kakaoId: body.kakaoId,
                 birth: body.birth,
                 phone: body.phone,
+                login: body.login,
+                college: body.college,
+                department: body.department,
                 student_number: body.student_number,
                 nickname: body.nickname,
                 signed_club_list: body.signed_club_list,
@@ -73,10 +62,12 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 name: body.name,
                 email: body.email,
                 token: body.token,
-                email_certification: body.email_certification,
                 kakaoId: body.kakaoId,
                 birth: body.birth,
                 phone: body.phone,
+                login: body.login,
+                college: body.college,
+                department: body.department,
                 student_number: body.student_number,
                 nickname: body.nickname,
                 signed_club_list: body.signed_club_list,
