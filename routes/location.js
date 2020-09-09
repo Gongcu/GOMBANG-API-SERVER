@@ -23,11 +23,13 @@ router.post("/",(req,res)=>{
         if(rows.length === 0){
             connection.query(insertQuery,params,(error,rows)=>{
                 if(error) throw error;
+                console.log(rows);
                 res.send(rows);
             });
         }else{
             connection.query(updateQuery,(error,rows)=>{
                 if(error) throw error;
+                console.log(rows);
                 res.send(rows);
             });
         }
@@ -56,18 +58,19 @@ router.post('/accident', (req, res) => {
         else{
             for(var i=0; i<rows.length; i++)
                 token[i]=rows[i].token;
-            
+
             const message = {
                 data: {
-                    latitude:latitude,
-                    longitude:longitude,
+                    latitude: latitude.toString(),
+                    longitude: longitude.toString(),
                     accidentInfo: trackedLocationList
                 },
                 tokens: token
             };
             admin.messaging().sendMulticast(message)
             .then((response) => {
-                console.log('successfully sent message:', response);
+                console.log(token);
+                console.log(response);
                 res.send(response);
             })
             .catch((error) => {
