@@ -27,7 +27,6 @@ router.get('/',async(req,res,next)=>{
         }else{
             res.send(club);
         }
-        //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){
         console.error(err);
         next(err);
@@ -36,13 +35,27 @@ router.get('/',async(req,res,next)=>{
 
 router.get('/:name',async(req,res,next)=>{
     try{
-        const club = await Club.find({name:req.params.name});
+        const club = await Club.find({name:req.params.name});//.populate('member_uid_list').populate('manager_uid_list');
         if(club.length===0){
             res.send('empty');
         }else{
             res.send(club);
         }
-        //const result = await Club.populate(club, {path:'member_uid_list'});
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+router.get('/:name/member',async(req,res,next)=>{
+    try{
+        const club = await Club.find({name:req.params.name}).populate('member_uid_list');
+        if(club.length===0){
+            res.send('empty');
+        }else{
+            res.send(club);
+        }
     }catch(err){
         console.error(err);
         next(err);

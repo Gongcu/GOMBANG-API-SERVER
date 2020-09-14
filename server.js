@@ -10,6 +10,7 @@ const club = require('./routes/club');
 const image = require('./routes/image')
 const event = require('./routes/event')
 const auth = require('./routes/auth')
+const calendar = require('./routes/calendar')
 
 connect();
 
@@ -21,7 +22,7 @@ app.use('/club', club);
 app.use('/image', image);
 app.use('/event', event);
 app.use('/auth', auth);
-
+app.use('/calendar', calendar);
 
 app.listen(3000, () => { //3000번 포트
     console.log("the server is running")

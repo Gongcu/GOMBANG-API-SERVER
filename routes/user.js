@@ -35,6 +35,20 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
+router.get('/:kakaoId',async(req,res,next)=>{
+    try{
+        const user = await User.find({kakaoId:req.params.kakaoId}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
+        if(user.length===0){
+            res.send('empty');
+        }else{
+            res.send(user);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
@@ -79,7 +93,6 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
         }else{
             res.send(user);
         }
-        //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){
         console.error(err);
         next(err);
@@ -95,7 +108,6 @@ router.delete('/:id',async(req,res,next)=>{
             });
         }
         res.send(user);
-        //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){
         console.error(err);
         next(err);

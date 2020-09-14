@@ -63,20 +63,25 @@ const eventSchema = new Schema({
             ref:"User"
         }
     ],
-    event_title:{
+    title:{
         type:String,
     },
-    event_start_day:{
+    color:{
         type:String,
     },
-    event_end_day:{
+    startDate:{
         type:String,
     },
-    event_place:{
+    endDate:{
         type:String,
     },
-    event_memo:{
+    place:{
         type:String,
+        default:"",
+    },
+    memo:{
+        type:String,
+        default:"",
     }
 },{strict:false});
 

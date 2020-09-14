@@ -22,6 +22,8 @@ var appDir = path.dirname(require.main.filename);
 router.get('/',async(req,res,next)=>{
     try{
         const event = await Event.find({});
+        //.populate('liker_id_list','name image').populate('participation_id_list','name image').
+        //populate('paid_id_list','name image').populate('comment_id_list','name image');
         if(event.length===0){
             res.send('empty');
         }else{
@@ -36,6 +38,8 @@ router.get('/',async(req,res,next)=>{
 router.get('/:id',async(req,res,next)=>{
     try{
         const event = await Event.find({_id:req.params.id});
+        //.populate('liker_id_list','name image').populate('participation_id_list','name image').
+        //populate('paid_id_list','name image').populate('comment_id_list','name image');
         if(event.length===0){
             res.send('empty');
         }else{
