@@ -12,7 +12,7 @@ const commentSchema = new Schema({
     },
     createdAt:{
         type: String,
-        default: Date.now.toString
+        default: Date.now().toString()
     },
 },{strict:false});
 
