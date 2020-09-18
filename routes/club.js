@@ -1,4 +1,7 @@
 const express = require('express');
+const mongoose = require('mongoose');
+const {Schema} = mongoose;
+const {Types:{ObjectId}}=Schema;
 const Club = require('../schemas/club');
 const multer = require('multer');
 const path = require('path');
@@ -33,10 +36,10 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
-router.get('/:name',async(req,res,next)=>{
+router.get('/:id',async(req,res,next)=>{
     try{
-        const club = await Club.find({name:req.params.name});//.populate('member_uid_list').populate('manager_uid_list');
-        if(club.length===0){
+        const club = await Club.findOne({_id:req.params.id});//.populate('member_uid_list')//.populate('manager_uid_list');
+        if(club===null){
             res.send('empty');
         }else{
             res.send(club);
@@ -48,13 +51,27 @@ router.get('/:name',async(req,res,next)=>{
 });
 
 
-router.get('/:name/member',async(req,res,next)=>{
+router.get('/:id/member',async(req,res,next)=>{
     try{
-        const club = await Club.find({name:req.params.name}).populate('member_uid_list');
+        const club = await Club.findOne({_id:req.params.id}).populate('member_uid_list');
         if(club.length===0){
             res.send('empty');
         }else{
-            res.send(club);
+            res.send(club.member_uid_list);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+router.get('/:id/manager',async(req,res,next)=>{
+    try{
+        const club = await Club.findOne({_id:req.params.id}).populate('manager_uid_list');
+        if(club.length===0){
+            res.send('empty');
+        }else{
+            res.send(club.member_uid_list);
         }
     }catch(err){
         console.error(err);
@@ -113,6 +130,48 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
+router.patch('/recruitment/:cid',async(req,res,next)=>{
+    try{
+        const club = await Club.update({_id:req.params.cid},{$set:{recruitment:req.body.recruitment}})
+        if(club.length===0){
+            res.send('club create failed')
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+router.post('/member/:cid',async(req,res,next)=>{
+    try{
+        const club = await Club.update({_id:req.params.cid},{$push:{member_uid_list:req.body.uid}})
+        if(club.length===0){
+            res.send('club create failed')
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+router.post('/manager/:cid',async(req,res,next)=>{
+    try{
+        const club = await Club.update({_id:req.params.cid},{$push:{manager_uid_list:req.body.uid}})
+        if(club.length===0){
+            res.send('club create failed')
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 router.delete('/:id',async(req,res,next)=>{
     try{
         const club = await Club.remove({_id:req.params.id});
@@ -125,17 +184,39 @@ router.delete('/:id',async(req,res,next)=>{
         next(err);
     }
 });
-/*
-router.delete('/:name',async(req,res,next)=>{
+
+//REST API 설계 규약을 따름 (Request Body는 지양)
+router.delete('/member/:cid/:uid',async(req,res,next)=>{
     try{
-        const club = await Club.remove({name:req.params.name});
-        fs.unlink(appDir+'/upload/'+club.image, (err) => {
-            console.log(err);
-        });
-        res.send(club);
+        console.log(req.params.uid)
+        const club = await Club.updateOne({_id:req.params.cid},{$pull:{member_uid_list:req.params.uid}});
+        if(club===null){
+            res.send('cannot delete the member');
+        }else{
+            res.send(club);
+        }
     }catch(err){
         console.error(err);
         next(err);
     }
-});*/
+});
+
+router.delete('/manager/:cid/:uid',async(req,res,next)=>{
+    try{
+        const club = await Club.updateOne({_id:req.params.cid},{$pull:{manager_uid_list:req.params.uid}});
+        if(club===null){
+            res.send('cannot delete the manager');
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+
+
+
 module.exports = router;

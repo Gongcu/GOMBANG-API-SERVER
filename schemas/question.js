@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const formatDate = require('../etc/formatDate.js');
 
 const {Schema} = mongoose;
 const {Types:{ObjectId}}=Schema;
@@ -22,15 +23,17 @@ const questionSchema = new Schema({
         type:ObjectId,
         ref:'Answer'
     },
-    isAnswerd:{
+    isAnswered:{
         type:Boolean,
         default:false,
     },
     createdAt:{
         type:String,
-        default:Date.now().toString(),
+        default:formatDate(Date()),
     }
 },{strict:false});
+
+
 
 module.exports = mongoose.model('Question', questionSchema,'question');
 
