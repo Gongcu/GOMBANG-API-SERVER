@@ -130,11 +130,25 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
+router.patch('/exposure/:cid',async(req,res,next)=>{
+    try{
+        const club = await Club.update({_id:req.params.cid},{$set:{exposure:req.body.exposure}});
+        if(club.length===0){
+            res.send('update failed')
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 router.patch('/recruitment/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.update({_id:req.params.cid},{$set:{recruitment:req.body.recruitment}})
+        const club = await Club.update({_id:req.params.cid},{$set:{recruitment:req.body.recruitment}});
         if(club.length===0){
-            res.send('club create failed')
+            res.send('update failed')
         }else{
             res.send(club);
         }
@@ -214,9 +228,6 @@ router.delete('/manager/:cid/:uid',async(req,res,next)=>{
         next(err);
     }
 });
-
-
-
 
 
 module.exports = router;

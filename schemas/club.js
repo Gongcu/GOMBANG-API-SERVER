@@ -52,7 +52,11 @@ const clubSchema = new Schema({
     ],
     recruitment:{
         type:Boolean,
-        default:false
+        default:false,
+    },
+    exposure:{
+        type:Boolean,
+        default:true,
     },
     hashtags:[
         {

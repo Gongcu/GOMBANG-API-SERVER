@@ -99,6 +99,47 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
+router.post('/signed_club_list/:uid',async(req,res,next)=>{
+    try{
+        const club = await Club.update({_id:req.params.uid},{$push:{signed_club_list:req.body.cid}});
+        if(club.length===0){
+            res.send('club create failed')
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+router.post('/favorite_club_list/:uid',async(req,res,next)=>{
+    try{
+        const club = await Club.update({_id:req.params.uid},{$push:{favorite_club_list:req.body.cid}})
+        if(club.length===0){
+            res.send('club create failed')
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+router.post('/member/:cid',async(req,res,next)=>{
+    try{
+        const club = await Club.update({_id:req.params.cid},{$push:{member_uid_list:req.body.uid}})
+        if(club.length===0){
+            res.send('club create failed')
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 router.delete('/:id',async(req,res,next)=>{
     try{
         const user = await User.remove({_id:req.params.id});
@@ -113,5 +154,51 @@ router.delete('/:id',async(req,res,next)=>{
         next(err);
     }
 });
+router.delete('/signed_club_list/:uid/:cid',async(req,res,next)=>{
+    try{
+        const club = await Club.updateOne({_id:req.params.uid},{$pull:{signed_club_list:req.params.cid}});
+        if(club===null){
+            res.send('cannot delete the club');
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+router.delete('/favorite_club_list/:uid/:cid',async(req,res,next)=>{
+    try{
+        const club = await Club.updateOne({_id:req.params.uid},{$pull:{favorite_club_list:req.params.cid}});
+        if(club===null){
+            res.send('cannot delete the club');
+        }else{
+            res.send(club);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ *  /user/favorite_club_list/:uid/:cid:
+ *    delete:
+ *      tags:
+ *      - User
+ *      description: 지정된 동아리를 즐겨찾기 목록에서 삭제한다..
+ *      produces:
+ *      - applicaion/json
+ *      parameters:
+ *      responses:
+ *       200:
+ *        description: board of selected id column list
+ *        schema:
+ *          type: boolean
+ *          items:
+ *           ref: 'true'
+ */
+
 
 module.exports = router;

@@ -13,9 +13,13 @@ const auth = require('./routes/auth')
 const calendar = require('./routes/calendar')
 const qna = require('./routes/qna')
 
+const swaggerDoc = require('./swaggerDocs.js');
+
+
 connect();
 
 app.use(express.json({limit:'25mb'}));
+app.use(swaggerDoc);
 app.use('/location', location);
 app.use('/post', post);
 app.use('/user', user);

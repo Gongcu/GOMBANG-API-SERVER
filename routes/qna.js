@@ -5,6 +5,7 @@ const answer = require('../schemas/answer');
 const router = express.Router();
 
 
+
 //해당하는 동아리의 질문, 답변 목록을 전부 가져옴
 router.get('/:club_id',async(req,res,next)=>{
     try{
@@ -19,6 +20,24 @@ router.get('/:club_id',async(req,res,next)=>{
         next(err);
     }
 });
+/**
+ * @swagger
+ *  /qna/{club_id}:
+ *    get:
+ *      tags:
+ *      - Q&A
+ *      summary: 해당 동아리에 해당하는 질문,답변 목록을 가져온다.
+ *      description: 해당 동아리에 해당하는 질문,답변 목록을 가져온다.
+ *      produces:
+ *      - applicaion/json
+ *      responses:
+ *       200:
+ *        description: 조회 성공
+ *        schema:
+ *          type: array
+ *          items:
+ *           $ref: '#/definitions/question/qna'
+ */
 
 //질문 작성
 router.post('/question',async(req,res,next)=>{
@@ -40,6 +59,7 @@ router.post('/question',async(req,res,next)=>{
         next(err);
     }
 });
+
 
 //답글 작성시 답글 생성후 질문 id에 해당하는 로우의 answer 값을 answer의 id로 업데이트.
 router.post('/answer',async(req,res,next)=>{
@@ -79,6 +99,31 @@ router.patch('/question/:id',async(req,res,next)=>{
     }
 });
 
+/**
+ * @swagger
+ *  /qna/question/{_id}:
+ *    patch:
+ *      tags:
+ *      - Q&A
+ *      summary: 해당 동아리에 해당하는 질문을 수정한다.
+ *      description: 해당 동아리에 해당하는 질문을 수정한다.
+ *      produces:
+ *      - applicaion/json
+ *      requestBody:
+ *       content:
+ *        application/json:
+ *         question:
+ *          type:string
+ *      responses:
+ *       200:
+ *        description: 조회 성공
+ *        schema:
+ *          type: array
+ *          items:
+ *           $ref: '#/definitions/question/qna'
+ */
+
+
 router.patch('/answer/:id',async(req,res,next)=>{
     try{
         const updatedAnswer = req.body.answer;
@@ -92,6 +137,25 @@ router.patch('/answer/:id',async(req,res,next)=>{
         next(err);
     }
 });
+/**
+ * @swagger
+ *  /qna/question/{id}:
+ *    patch:
+ *      tags:
+ *      - Q&A
+ *      summary: 해당 id에 해당하는 질문을 수정한다.
+ *      description: 해당 id에 해당하는 질문을 수정한다.
+ *      produces:
+ *      - applicaion/json
+ *      parameters:
+ *      responses:
+ *       200:
+ *        description: board of selected id column list
+ *        schema:
+ *          type: boolean
+ *          items:
+ *           ref: 'true'
+ */
 
 router.delete('/question/:id',async(req,res,next)=>{
     try{
@@ -106,6 +170,26 @@ router.delete('/question/:id',async(req,res,next)=>{
     }
 });
 
+/**
+ * @swagger
+ *  /qna/question/{id}:
+ *    delete:
+ *      tags:
+ *      - Q&A
+ *      summary: 해당 id에 해당하는 질문을 삭제한다.
+ *      description: 해당 id에 해당하는 질문을 삭제한다.
+ *      produces:
+ *      - applicaion/json
+ *      parameters:
+ *      responses:
+ *       200:
+ *        description: board of selected id column list
+ *        schema:
+ *          type: boolean
+ *          items:
+ *           ref: 'true'
+ */
+
 router.delete('/answer/:id',async(req,res,next)=>{
     try{
         const answer = await Answer.remove({_id:req.params.id});
@@ -118,6 +202,25 @@ router.delete('/answer/:id',async(req,res,next)=>{
         next(err);
     }
 });
+/**
+ * @swagger
+ *  /qna/answer/{id}:
+ *    delete:
+ *      tags:
+ *      - Q&A
+ *      summary: 해당 id에 해당하는 답변을 삭제한다.
+ *      description: 해당 id에 해당하는 답변을 삭제한다.
+ *      produces:
+ *      - applicaion/json
+ *      parameters:
+ *      responses:
+ *       200:
+ *        description: board of selected id column list
+ *        schema:
+ *          type: boolean
+ *          items:
+ *           ref: 'true'
+ */
 
 module.exports = router;
 
