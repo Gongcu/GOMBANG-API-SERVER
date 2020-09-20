@@ -21,8 +21,9 @@ router.get('/login',async(req,res,next)=>{
     }
 });
 
-router.get('/mail/:email', async(req, res) => {
-    let authNum = Math.random().toString().substr(2,6);
+router.get('/mail/:studentNumber', async(req, res) => {
+    const emailAddress=req.params.studentNumber+'@dankook.ac.kr';
+    const authNum = Math.random().toString().substr(2,6);
     //let authurl = "http://localhost:3000/auth/mail/"+req.body.mail;
     let emailTemplete;
     ejs.renderFile(appDir+'/template/authMail.ejs', {authCode : authNum}, function (err, data) {
@@ -43,7 +44,7 @@ router.get('/mail/:email', async(req, res) => {
 
     let mailOptions = await transporter.sendMail({
         from: `곰방`,
-        to: req.params.email,
+        to: emailAddress,
         subject: '회원가입을 위한 인증번호를 입력해주세요.',
         html: emailTemplete,
     });
@@ -58,5 +59,26 @@ router.get('/mail/:email', async(req, res) => {
         transporter.close()
     });
 });
+
+/**
+ * @swagger
+ *  /auth/mail/{_studentNumber}:
+ *    get:
+ *      tags:
+ *      - auth
+ *      summary: 학번에 해당하는 메일로 인증번호를 전송한다.
+ *      description: 학번에 해당하는 메일로 인증번호를 전송한다.
+ *      produces:
+ *      - applicaion/json
+ *      responses:
+ *       200:
+ *        description: 조회 성공
+ *        content:
+ *          text/plain:
+ *            schema:
+ *              type: string
+ *              example: Finish sending email
+ */
+
 
 module.exports=router;
