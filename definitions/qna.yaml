@@ -1,0 +1,47 @@
+definitions:
+   qna_response:
+    type: object
+    required:
+      - club_id
+      - uid
+      - question
+    properties:
+      _id:
+        type: string
+        description: (기본 생성)
+      club_id:
+        type: string
+        description: 동아리
+      uid:
+        type: object
+        properties:
+          _id: 
+            type: string
+          name: 
+            type: string
+      question:
+        type: boolean
+        description: 질문 내용
+      isAnswered:
+        type: boolean
+        description: 답변 여부
+      createdAt:
+        type: string
+        description: 질문 생성일
+      answer:
+        type: object
+        properties:
+          _id:
+            type: string
+            description: (기본 생성)
+          uid:
+            type: string
+            description: 답변 작성자 _id
+          answer:
+            type: String
+            description: 답변 내용
+          createdAt:
+             type: String
+             description: 답변 생성일
+
+

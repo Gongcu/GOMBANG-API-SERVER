@@ -9,12 +9,15 @@ const userSchema = new Schema({
     },
     token:{
         type: String,
+        default: ""
     },
     login:{
         type: Boolean,
+        default: false
     },
     name:{
         type: String,
+        default: ""
     },
     image:{
         type: String,
@@ -22,25 +25,32 @@ const userSchema = new Schema({
     },
     email:{
         type: String,
+        default: ""
     },
     phone:{
         type: String,
+        default: ""
     },
     birth:{
         type: String,
+        default: ""
     },
     student_number:{
-        type: Number,
+        type: String,
+        default: ""
     },
     college:{
         type: String,
+        default: ""
     },
     department:{
         type: String,
+        default: ""
     },
     nickname:{
         type:Map,
         of:String,
+        default: {"":""}
     },
     signed_club_list:[
         {

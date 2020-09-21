@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
 const User = require('../schemas/user');
+const formatWriteResult = require('../etc/formatWriteResult.js');
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -37,7 +38,7 @@ router.get('/',async(req,res,next)=>{
 
 router.get('/:kakaoId',async(req,res,next)=>{
     try{
-        const user = await User.find({kakaoId:req.params.kakaoId}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
+        const user = await User.findOne({kakaoId:req.params.kakaoId}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
         if(user.length===0){
             res.send('empty');
         }else{
@@ -48,7 +49,6 @@ router.get('/:kakaoId',async(req,res,next)=>{
         next(err);
     }
 });
-
 
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
@@ -99,40 +99,14 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
-router.post('/signed_club_list/:uid',async(req,res,next)=>{
-    try{
-        const club = await Club.update({_id:req.params.uid},{$push:{signed_club_list:req.body.cid}});
-        if(club.length===0){
-            res.send('club create failed')
-        }else{
-            res.send(club);
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
 
 router.post('/favorite_club_list/:uid',async(req,res,next)=>{
     try{
-        const club = await Club.update({_id:req.params.uid},{$push:{favorite_club_list:req.body.cid}})
-        if(club.length===0){
-            res.send('club create failed')
+        const user = await User.updateOne({_id:req.params.uid},{$push:{favorite_club_list:req.body.cid}})
+        if(user.length===0){
+            res.send('user create failed')
         }else{
-            res.send(club);
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-router.post('/member/:cid',async(req,res,next)=>{
-    try{
-        const club = await Club.update({_id:req.params.cid},{$push:{member_uid_list:req.body.uid}})
-        if(club.length===0){
-            res.send('club create failed')
-        }else{
-            res.send(club);
+            res.send(formatWriteResult(user));
         }
     }catch(err){
         console.error(err);
@@ -148,57 +122,25 @@ router.delete('/:id',async(req,res,next)=>{
                 console.log(err);
             });
         }
-        res.send(user);
+        res.send(formatWriteResult(user));
     }catch(err){
         console.error(err);
         next(err);
     }
 });
-router.delete('/signed_club_list/:uid/:cid',async(req,res,next)=>{
-    try{
-        const club = await Club.updateOne({_id:req.params.uid},{$pull:{signed_club_list:req.params.cid}});
-        if(club===null){
-            res.send('cannot delete the club');
-        }else{
-            res.send(club);
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
+
 router.delete('/favorite_club_list/:uid/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.updateOne({_id:req.params.uid},{$pull:{favorite_club_list:req.params.cid}});
-        if(club===null){
+        const user = await User.updateOne({_id:req.params.uid},{$pull:{favorite_club_list:req.params.cid}});
+        if(user===null){
             res.send('cannot delete the club');
         }else{
-            res.send(club);
+            res.send(formatWriteResult(user));
         }
     }catch(err){
         console.error(err);
         next(err);
     }
 });
-
-/**
- * @swagger
- *  /user/favorite_club_list/:uid/:cid:
- *    delete:
- *      tags:
- *      - User
- *      description: 지정된 동아리를 즐겨찾기 목록에서 삭제한다..
- *      produces:
- *      - applicaion/json
- *      parameters:
- *      responses:
- *       200:
- *        description: board of selected id column list
- *        schema:
- *          type: boolean
- *          items:
- *           ref: 'true'
- */
-
 
 module.exports = router;

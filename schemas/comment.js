@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const formatDate = require('../etc/formatDate.js');
 
 const {Schema} = mongoose;
 const {Types:{ObjectId}}=Schema;
@@ -12,7 +13,7 @@ const commentSchema = new Schema({
     },
     createdAt:{
         type: String,
-        default: Date.now().toString()
+        default: formatDate(Date())
     },
 },{strict:false});
 

@@ -36,7 +36,7 @@ router.get('/:club_id',async(req,res,next)=>{
  *        schema:
  *          type: array
  *          items:
- *           $ref: '#/definitions/question/qna'
+ *           $ref: '#/definitions/qna_response'
  */
 
 //질문 작성

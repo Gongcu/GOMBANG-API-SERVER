@@ -2,7 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const {Schema} = mongoose;
 const {Types:{ObjectId}}=Schema;
+const formatWriteResult = require('../etc/formatWriteResult.js');
 const Club = require('../schemas/club');
+const User = require('../schemas/user');
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -22,6 +24,7 @@ var appDir = path.dirname(require.main.filename);
 
 const router = express.Router();
 
+//POSTMAN
 router.get('/',async(req,res,next)=>{
     try{
         const club = await Club.find({});
@@ -36,9 +39,10 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
-router.get('/:id',async(req,res,next)=>{
+//POSTMAN
+router.get('/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.findOne({_id:req.params.id});//.populate('member_uid_list')//.populate('manager_uid_list');
+        const club = await Club.findOne({_id:req.params.cid});//.populate('member_uid_list')//.populate('manager_uid_list');
         if(club===null){
             res.send('empty');
         }else{
@@ -51,6 +55,7 @@ router.get('/:id',async(req,res,next)=>{
 });
 
 
+//POSTMAN
 router.get('/:id/member',async(req,res,next)=>{
     try{
         const club = await Club.findOne({_id:req.params.id}).populate('member_uid_list');
@@ -65,13 +70,14 @@ router.get('/:id/member',async(req,res,next)=>{
     }
 });
 
+//POSTMAN
 router.get('/:id/manager',async(req,res,next)=>{
     try{
         const club = await Club.findOne({_id:req.params.id}).populate('manager_uid_list');
         if(club.length===0){
             res.send('empty');
         }else{
-            res.send(club.member_uid_list);
+            res.send(club.manager_uid_list);
         }
     }catch(err){
         console.error(err);
@@ -130,13 +136,15 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
+//POSTMAN
 router.patch('/exposure/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.update({_id:req.params.cid},{$set:{exposure:req.body.exposure}});
-        if(club.length===0){
+        const getClub = await Club.findOne({_id:req.params.cid},{_id:0,exposure:1})
+        const club = await Club.updateOne({_id:req.params.cid},{$set:{exposure:getClub.exposure}});
+        if(formatWriteResult(club)===false){
             res.send('update failed')
         }else{
-            res.send(club);
+            res.send(true);
         }
     }catch(err){
         console.error(err);
@@ -144,13 +152,15 @@ router.patch('/exposure/:cid',async(req,res,next)=>{
     }
 });
 
+//POSTMAN
 router.patch('/recruitment/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.update({_id:req.params.cid},{$set:{recruitment:req.body.recruitment}});
+        const getClub = await Club.findOne({_id:req.params.cid},{_id:0,recruitment:1})
+        const club = await Club.updateOne({_id:req.params.cid},{$set:{recruitment:getClub.recruitment}});
         if(club.length===0){
             res.send('update failed')
         }else{
-            res.send(club);
+            res.send(formatWriteResult(club));
         }
     }catch(err){
         console.error(err);
@@ -158,13 +168,15 @@ router.patch('/recruitment/:cid',async(req,res,next)=>{
     }
 });
 
+//POSTMAN
 router.post('/member/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.update({_id:req.params.cid},{$push:{member_uid_list:req.body.uid}})
-        if(club.length===0){
+        const club = await Club.updateOne({_id:req.params.cid},{$push:{member_uid_list:req.body.uid}});
+        const user = await User.updateOne({_id:req.body.uid},{$push:{signed_club_list:req.params.cid}});
+        if(formatWriteResult(club)===false && formatWriteResult(user)===false){
             res.send('club create failed')
         }else{
-            res.send(club);
+            res.send(true);
         }
     }catch(err){
         console.error(err);
@@ -172,19 +184,22 @@ router.post('/member/:cid',async(req,res,next)=>{
     }
 });
 
+//POSTMAN
 router.post('/manager/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.update({_id:req.params.cid},{$push:{manager_uid_list:req.body.uid}})
-        if(club.length===0){
+        const club = await Club.updateOne({_id:req.params.cid},{$push:{manager_uid_list:req.body.uid}});
+        if(formatWriteResult(club)===false){
             res.send('club create failed')
         }else{
-            res.send(club);
+            res.send(true);
         }
     }catch(err){
         console.error(err);
         next(err);
     }
 });
+
+
 
 router.delete('/:id',async(req,res,next)=>{
     try{
@@ -200,14 +215,15 @@ router.delete('/:id',async(req,res,next)=>{
 });
 
 //REST API 설계 규약을 따름 (Request Body는 지양)
+//POSTMAN
 router.delete('/member/:cid/:uid',async(req,res,next)=>{
     try{
-        console.log(req.params.uid)
+        const user = await User.updateOne({_id:req.params.uid},{$pull:{signed_club_list:req.params.cid}});
         const club = await Club.updateOne({_id:req.params.cid},{$pull:{member_uid_list:req.params.uid}});
-        if(club===null){
+        if(formatWriteResult(club)===false && formatWriteResult(user)===false){
             res.send('cannot delete the member');
         }else{
-            res.send(club);
+            res.send(true);
         }
     }catch(err){
         console.error(err);
@@ -215,19 +231,19 @@ router.delete('/member/:cid/:uid',async(req,res,next)=>{
     }
 });
 
+//POSTMAN
 router.delete('/manager/:cid/:uid',async(req,res,next)=>{
     try{
         const club = await Club.updateOne({_id:req.params.cid},{$pull:{manager_uid_list:req.params.uid}});
-        if(club===null){
+        if(formatWriteResult(club)===false){
             res.send('cannot delete the manager');
         }else{
-            res.send(club);
+            res.send(true);
         }
     }catch(err){
         console.error(err);
         next(err);
     }
 });
-
 
 module.exports = router;

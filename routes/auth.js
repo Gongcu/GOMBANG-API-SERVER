@@ -4,27 +4,25 @@ const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const path = require('path');
 const User = require('../schemas/user')
+const formatWriteResult = require('../etc/formatWriteResult.js')
 var appDir = path.dirname(require.main.filename);
 
-router.get('/login',async(req,res,next)=>{
+//POSTMAN
+router.patch('/token',async(req,res,next)=>{
     try{
-        const user = await User.find({kakaoId:req.body.kakaoId});
-        if(user.length!==0){
-            await User.updateOne({kakaoId:req.body.kakaoId},{token:req.body.token})
-            res.send('true');
-        }else{
-            res.send('false');
-        }
+        const result = await User.updateOne({kakaoId:req.body.kakaoId},{token:req.body.token})
+        res.send(formatWriteResult(result));
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
+//POSTMAN
 router.get('/mail/:studentNumber', async(req, res) => {
     const emailAddress=req.params.studentNumber+'@dankook.ac.kr';
     const authNum = Math.random().toString().substr(2,6);
-    //let authurl = "http://localhost:3000/auth/mail/"+req.body.mail;
+
     let emailTemplete;
     ejs.renderFile(appDir+'/template/authMail.ejs', {authCode : authNum}, function (err, data) {
       if(err){console.log(err)}
@@ -59,26 +57,5 @@ router.get('/mail/:studentNumber', async(req, res) => {
         transporter.close()
     });
 });
-
-/**
- * @swagger
- *  /auth/mail/{_studentNumber}:
- *    get:
- *      tags:
- *      - auth
- *      summary: 학번에 해당하는 메일로 인증번호를 전송한다.
- *      description: 학번에 해당하는 메일로 인증번호를 전송한다.
- *      produces:
- *      - applicaion/json
- *      responses:
- *       200:
- *        description: 조회 성공
- *        content:
- *          text/plain:
- *            schema:
- *              type: string
- *              example: Finish sending email
- */
-
 
 module.exports=router;
