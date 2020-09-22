@@ -1,7 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const {Schema} = mongoose;
-const {Types:{ObjectId}}=Schema;
 const formatWriteResult = require('../etc/formatWriteResult.js');
 const Club = require('../schemas/club');
 const User = require('../schemas/user');

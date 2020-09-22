@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
 const connect = require('./schemas');
-const location = require('./routes/location');
 const post = require('./routes/post');
 const user = require('./routes/user');
 const club = require('./routes/club');
@@ -17,7 +16,6 @@ const qna = require('./routes/qna')
 connect();
 
 app.use(express.json({limit:'25mb'}));
-app.use('/location', location);
 app.use('/post', post);
 app.use('/user', user);
 app.use('/club', club);
