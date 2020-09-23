@@ -3,27 +3,40 @@ const formatDateTime = require('../etc/formatDateTime.js');
 
 const {Schema} = mongoose;
 const {Types:{ObjectId}}=Schema;
-const eventSchema = new Schema({
-    host_uid:{
+const postSchema = new Schema({
+    writer_uid:{
         type: ObjectId,
         ref:'User',
         required: true,
     },
-    host_club_id:{
+    club_id:{
         type: ObjectId,
         ref:'Club',
+        required: true,
+    },
+    isNotice:{
+        type: Boolean,
+        default: false
     },
     text:{
         type:String,
         required:true,
     },
-    banner:{
+    image:[
+        {
         type: String,
-        required:true,
-    },
-    image:{
+        }
+    ],
+    file:[
+        {
         type: String,
-    },
+        }
+    ],
+    video:[
+        {
+        type: String,
+        }
+    ],
     like_uid_list:[
         {
             type:ObjectId,
@@ -46,23 +59,28 @@ const eventSchema = new Schema({
             ref:"User"
         }
     ],
-    comment_id_list:[ //댓글 목록
+    comment_id_list:[
         {
             type:ObjectId,
             ref:"Comment"
         }
     ],
+    //below fields related calendar
     title:{
         type:String,
+        default:"",
     },
     color:{
         type:String,
+        default:"",
     },
     startDate:{
         type:String,
+        default:"",
     },
     endDate:{
         type:String,
+        default:"",
     },
     place:{
         type:String,
@@ -78,4 +96,4 @@ const eventSchema = new Schema({
     }
 },{strict:false});
 
-module.exports = mongoose.model('Event', eventSchema,'event');
+module.exports = mongoose.model('Post', postSchema,'post');

@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../schemas/event');
+const formatWriteResult = require('../etc/formatWriteResult.js');
+const formatDeleteResult = require('../etc/formatDeleteResult.js');
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -22,8 +24,8 @@ var appDir = path.dirname(require.main.filename);
 router.get('/',async(req,res,next)=>{
     try{
         const event = await Event.find({});
-        //.populate('liker_id_list','name image').populate('participation_id_list','name image').
-        //populate('paid_id_list','name image').populate('comment_id_list','name image');
+        //.populate('like_uid_list','name image').populate('participation_uid_list','name image').
+        //populate('paid_uid_list','name image').populate('comment_id_list','name image');
         if(event.length===0){
             res.send('empty');
         }else{
@@ -38,8 +40,6 @@ router.get('/',async(req,res,next)=>{
 router.get('/:id',async(req,res,next)=>{
     try{
         const event = await Event.find({_id:req.params.id});
-        //.populate('liker_id_list','name image').populate('participation_id_list','name image').
-        //populate('paid_id_list','name image').populate('comment_id_list','name image');
         if(event.length===0){
             res.send('empty');
         }else{
@@ -60,45 +60,41 @@ router.post('/',uploader.fields([{name:'banner'},{name:'image'}]),async(req,res,
         }
         else if(typeof req.files['banner']!='undefined' && typeof req.files['image']=='undefined'){//배너만 존재하고 이미지는 없을 경우.
             event = await Event.create({
-                host_id: body.host_id,
+                host_uid: body.host_uid,
                 host_club_id:body.host_club_id,
                 text:body.text,
                 banner: req.files['banner'][0].filename,
-                like_count: body.like_count,
-                liker_id_list: body.liker_id_list,
+                like_uid_list: body.like_uid_list,
                 participation_fee: body.participation_fee,
-                participation_count: body.participation_count,
-                participation_id_list:body.participation_id_list,
-                paid_id_list:body.paid_id_list,
-                comment_count:body.comment_count,
+                participation_uid_list:body.participation_uid_list,
+                paid_uid_list:body.paid_uid_list,
                 comment_id_list:body.comment_id_list,
-                event_title:body.event_title,
-                event_start_day:body.event_start_day,
-                event_end_day:body.event_end_day,
-                event_place:body.event_place,
-                event_memo:body.event_memo
+                title:body.title,
+                color:body.color,
+                start_day:body.start_day,
+                end_day:body.end_day,
+                place:body.place,
+                memo:body.memo
             });
         }
         else{//둘 다 존재할 경우
             event = await Event.create({
-                host_id: body.host_id,
+                host_uid: body.host_uid,
                 host_club_id:body.host_club_id,
                 text:body.text,
                 banner: req.files['banner'][0].filename,
                 image: req.files['image'][0].filename,
-                like_count: body.like_count,
-                liker_id_list: body.liker_id_list,
+                like_uid_list: body.like_uid_list,
                 participation_fee: body.participation_fee,
-                participation_count: body.participation_count,
-                participation_id_list:body.participation_id_list,
-                paid_id_list:body.paid_id_list,
-                comment_count:body.comment_count,
+                participation_uid_list:body.participation_uid_list,
+                paid_uid_list:body.paid_uid_list,
                 comment_id_list:body.comment_id_list,
-                event_title:body.event_title,
-                event_start_day:body.event_start_day,
-                event_end_day:body.event_end_day,
-                event_place:body.event_place,
-                event_memo:body.event_memo
+                title:body.title,
+                color:body.color,
+                start_day:body.start_day,
+                end_day:body.end_day,
+                place:body.place,
+                memo:body.memo
             });
         }
         
@@ -107,7 +103,6 @@ router.post('/',uploader.fields([{name:'banner'},{name:'image'}]),async(req,res,
         }else{
             res.send(event);
         }
-        //const result = await Club.populate(club, {path:'member_uid_list'});
     }catch(err){
         console.error(err);
         next(err);
@@ -116,16 +111,19 @@ router.post('/',uploader.fields([{name:'banner'},{name:'image'}]),async(req,res,
 
 router.delete('/:id',async(req,res,next)=>{
     try{
-        const event = await Event.remove({_id:req.params.id});
-        fs.unlink(appDir+'/upload/'+event.banner, (err) => {
-            console.log(err);
-        });
-        if (event.image) {
-            fs.unlink(appDir + '/upload/' + event.image, (err) => {
+        const event = await Event.findOne({_id:req.params.id});
+        const result = await Event.remove({_id:req.params.id});
+        if(formatDeleteResult(result)===true){
+            fs.unlink(appDir+'/upload/'+event.banner, (err) => {
                 console.log(err);
             });
+            if (event.image) {
+                fs.unlink(appDir + '/upload/' + event.image, (err) => {
+                    console.log(err);
+                });
+            }
         }
-        res.send(event);
+        res.send(formatDeleteResult(result));
     }catch(err){
         console.error(err);
         next(err);

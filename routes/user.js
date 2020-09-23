@@ -3,6 +3,7 @@ const router = express.Router();
 const bodyParser = require('body-parser');
 const User = require('../schemas/user');
 const formatWriteResult = require('../etc/formatWriteResult.js');
+const formatDeleteResult = require('../etc/formatDeleteResult.js');
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -50,6 +51,8 @@ router.get('/:kakaoId',async(req,res,next)=>{
     }
 });
 
+
+//POSTMAN
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
         const body = JSON.parse(req.body.json)
@@ -114,15 +117,15 @@ router.post('/favorite_club_list/:uid',async(req,res,next)=>{
     }
 });
 
-router.delete('/:id',async(req,res,next)=>{
+router.delete('/:uid',async(req,res,next)=>{
     try{
-        const user = await User.remove({_id:req.params.id});
+        const user = await User.remove({_id:req.params.uid});
         if(user.image){
             fs.unlink(appDir+'/upload/'+user.image, (err) => {
                 console.log(err);
             });
         }
-        res.send(formatWriteResult(user));
+        res.send(formatDeleteResult(user));
     }catch(err){
         console.error(err);
         next(err);
