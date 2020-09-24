@@ -37,14 +37,14 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
-router.get('/:kakaoId',async(req,res,next)=>{
+//POSTMAN
+router.get('/:_id',async(req,res,next)=>{
     try{
-        const user = await User.findOne({kakaoId:req.params.kakaoId}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
-        if(user.length===0){
-            res.send('empty');
-        }else{
-            res.send(user);
+        var user = await User.findOne({kakaoId:req.params._id}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
+        if(user === null){
+            user = await User.findOne({_id:req.params._id}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
         }
+        res.send(user);
     }catch(err){
         console.error(err);
         next(err);
@@ -102,20 +102,25 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
-
-router.post('/favorite_club_list/:uid',async(req,res,next)=>{
+//POSTMAN
+router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
     try{
-        const user = await User.updateOne({_id:req.params.uid},{$push:{favorite_club_list:req.body.cid}})
-        if(user.length===0){
-            res.send('user create failed')
-        }else{
-            res.send(formatWriteResult(user));
+        var result;
+        const user = await User.findOne({_id:req.params.uid});
+        if(user.length!==0){
+            const exist=user.favorite_club_list.indexOf(req.body.cid);
+            if(exist!==-1)
+                result = await User.updateOne({_id:req.params.uid},{$pull:{favorite_club_list:req.body.cid}});
+            else
+                result = await User.updateOne({_id:req.params.uid},{$push:{favorite_club_list:req.body.cid}});
         }
+        res.send(formatWriteResult(result));
     }catch(err){
         console.error(err);
         next(err);
     }
 });
+
 
 router.delete('/:uid',async(req,res,next)=>{
     try{
@@ -132,18 +137,5 @@ router.delete('/:uid',async(req,res,next)=>{
     }
 });
 
-router.delete('/favorite_club_list/:uid/:cid',async(req,res,next)=>{
-    try{
-        const user = await User.updateOne({_id:req.params.uid},{$pull:{favorite_club_list:req.params.cid}});
-        if(user===null){
-            res.send('cannot delete the club');
-        }else{
-            res.send(formatWriteResult(user));
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
 
 module.exports = router;
