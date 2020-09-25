@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../schemas/post');
+const Comment = require('../schemas/comment')
 const multer = require('multer');
 const fileDeleter = require('../etc/fileDeleter.js');
 const formatWriteResult = require('../etc/formatWriteResult.js');
@@ -30,6 +31,17 @@ router.get('/:club_id',async(req,res,next)=>{
         }else{
             res.send(post);
         }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN
+router.get('/comment/:post_id',async(req,res,next)=>{
+    try{
+        const comments = await Comment.find({post_id:req.params.post_id}).populate('uid','name image');
+        res.send(comments);
     }catch(err){
         console.error(err);
         next(err);
@@ -89,6 +101,26 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
     }
 });
 
+//POSTMAN
+router.post('/comment/:post_id',async(req,res,next)=>{
+    try{
+        const comment = await Comment.create({
+            post_id:req.params.post_id,
+            uid: req.body.uid,
+            comment: req.body.comment,
+        });
+        var post;
+        if(typeof comment._id!='undefined'){
+            post = await Post.updateOne({_id:req.params.post_id}, {$push:{comment_id_list:comment._id}});
+        }
+        res.send(formatWriteResult(post));
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
 //바꾸고 싶은 내용 외에 다른 수정정보도 넣어야함. 코드 수정할 지 고민..
 router.patch('/:id',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     try{
@@ -128,6 +160,17 @@ router.patch('/:id',uploader.fields([{name:'file'},{name:'image'},{name:'video'}
 
         res.send(formatWriteResult(post))
 
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN
+router.patch('/comment/:comment_id',async(req,res,next)=>{
+    try{
+        const comment = await Comment.updateOne({_id:req.params.comment_id},{$set:{comment:req.body.comment}});
+        res.send(formatWriteResult(comment));
     }catch(err){
         console.error(err);
         next(err);
@@ -207,6 +250,28 @@ router.delete('/:id',async(req,res,next)=>{
         next(err);
     }
 });
+
+//POSTMAN
+router.delete('/comment/:post_id/:comment_id',async(req,res,next)=>{
+    try{
+        const post = await Post.updateOne({_id:req.params.post_id}, {$pull:{comment_id_list:req.params.comment_id}});
+        if(formatWriteResult(post)){
+            const comment = await Comment.remove({_id:req.params.comment_id});
+            if(formatDeleteResult(comment)){
+                res.send(true)
+            }else{
+                Post.updateOne({_id:req.params.post_id}, {$push:{comment_id_list:req.params.comment_id}});
+                res.send(false)
+            }
+        }else{
+            res.send(false)
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 
 
 module.exports = router;

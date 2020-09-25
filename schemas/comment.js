@@ -1,20 +1,26 @@
 const mongoose = require('mongoose');
-const formatDate = require('../etc/formatDate.js');
+const formatDateTime = require('../etc/formatDateTime.js');
 
 const {Schema} = mongoose;
 const {Types:{ObjectId}}=Schema;
 const commentSchema = new Schema({
-    //postId 필요 없을듯?
+    post_id:{
+        type: ObjectId,
+        ref:'Post',
+        required:true
+    },
     uid:{
         type: ObjectId,
         ref:'User',
+        required: true,
     },
     comment:{
         type:String,
+        required: true,
     },
     createdAt:{
         type: String,
-        default: formatDate(Date())
+        default: formatDateTime(Date())
     },
 },{strict:false});
 
