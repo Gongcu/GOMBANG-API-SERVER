@@ -51,6 +51,24 @@ router.get('/:cid',async(req,res,next)=>{
     }
 });
 
+router.get('/:cid/nickname/:nickname',async(req,res,next)=>{
+    try{
+        const club = await Club.findOne({_id:req.params.cid});
+        const nicknameList = club.used_nickname_list;
+        var result=true;
+        for(var i=0; i<nicknameList.length; i++){
+            if(nicknameList[i].nickname===req.params.nickname){
+                result=false
+                break;
+            }
+        }
+        res.send(result);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 
 //POSTMAN
 router.get('/:id/member',async(req,res,next)=>{
@@ -166,12 +184,17 @@ router.patch('/recruitment/:cid',async(req,res,next)=>{
 });
 
 //POSTMAN
+//존재하는 경우 추가x
 router.post('/member/:cid',async(req,res,next)=>{
     try{
-        const club = await Club.updateOne({_id:req.params.cid},{$push:{member_uid_list:req.body.uid}});
+        const nicknameObj={
+            uid:req.body.uid,
+            nickname:req.body.nickname
+        };
+        const club = await Club.updateOne({_id:req.params.cid},{$push:{member_uid_list:req.body.uid,used_nickname_list:nicknameObj}});
         const user = await User.updateOne({_id:req.body.uid},{$push:{signed_club_list:req.params.cid}});
         if(formatWriteResult(club)===false && formatWriteResult(user)===false){
-            res.send('club create failed')
+            res.send('member push failed')
         }else{
             res.send(true);
         }
@@ -182,11 +205,12 @@ router.post('/member/:cid',async(req,res,next)=>{
 });
 
 //POSTMAN
+//존재하는 경우 추가x
 router.post('/manager/:cid',async(req,res,next)=>{
     try{
         const club = await Club.updateOne({_id:req.params.cid},{$push:{manager_uid_list:req.body.uid}});
         if(formatWriteResult(club)===false){
-            res.send('club create failed')
+            res.send('member push failed')
         }else{
             res.send(true);
         }
@@ -216,12 +240,17 @@ router.delete('/:id',async(req,res,next)=>{
 router.delete('/member/:cid/:uid',async(req,res,next)=>{
     try{
         const user = await User.updateOne({_id:req.params.uid},{$pull:{signed_club_list:req.params.cid}});
-        const club = await Club.updateOne({_id:req.params.cid},{$pull:{member_uid_list:req.params.uid}});
-        if(formatWriteResult(club)===false && formatWriteResult(user)===false){
-            res.send('cannot delete the member');
-        }else{
-            res.send(true);
+        const club = await Club.findOne({_id:req.params.cid});
+        const nicknameList = club.used_nickname_list;
+        var deleteNickname;
+        for(var i=0; i<nicknameList.length; i++){
+            if(nicknameList[i].uid===req.params.uid){
+                deleteNickname = nicknameList[i];
+                break;
+            }
         }
+        const result = await Club.updateOne({_id:req.params.cid},{$pull:{member_uid_list:req.params.uid, used_nickname_list:deleteNickname}})
+        res.send(formatWriteResult(result));
     }catch(err){
         console.error(err);
         next(err);

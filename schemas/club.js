@@ -50,6 +50,12 @@ const clubSchema = new Schema({
             ref:"User"
         }
     ],
+    used_nickname_list:[
+        {
+            uid:String,
+            nickname:String,
+        }
+    ],
     recruitment:{
         type:Boolean,
         default:false,

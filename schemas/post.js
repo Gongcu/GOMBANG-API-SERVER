@@ -18,9 +18,16 @@ const postSchema = new Schema({
         type: Boolean,
         default: false
     },
+    isEvent:{
+        type: Boolean,
+        default: false
+    },
     text:{
         type:String,
         required:true,
+    },
+    banner:{
+        type: String,
     },
     image:[
         {

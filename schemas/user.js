@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const {Schema} = mongoose;
 const {Types:{ObjectId}}=Schema;
+
 const userSchema = new Schema({
     kakaoId:{
         type: String,
@@ -47,11 +48,6 @@ const userSchema = new Schema({
         type: String,
         default: ""
     },
-    nickname:{
-        type:Map,
-        of:String,
-        default: {"":""}
-    },
     signed_club_list:[
         {
             type:ObjectId,
@@ -65,5 +61,6 @@ const userSchema = new Schema({
         }
     ],
 },{strict:false});
+
 
 module.exports = mongoose.model('User', userSchema,'user');

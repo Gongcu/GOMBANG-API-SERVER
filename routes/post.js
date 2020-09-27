@@ -101,6 +101,68 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
     }
 });
 
+
+router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
+    try{
+        const body = JSON.parse(req.body.json)
+        var banner;
+        var file=new Array(), image=new Array(), video=new Array();
+
+        if(typeof req.files['banner']!='undefined'){
+            banner=req.files['banner'][0].filename;
+        }else{
+            res.send('Banner is required')
+        }
+
+        if(typeof req.files['file']!='undefined'){
+            for(var i=0; i<req.files['file'].length; i++)
+                file.push(req.files['file'][i].filename);
+        }
+        if(typeof req.files['image']!='undefined'){
+            for(var i=0; i<req.files['image'].length; i++)
+                image.push(req.files['image'][i].filename);
+        }
+        if(typeof req.files['video']!='undefined'){
+            for(var i=0; i<req.files['video'].length; i++)
+                video.push(req.files['video'][i].filename);
+        }
+
+
+        const post = await Post.create({
+            writer_uid: body.writer_uid,
+            club_id: body.club_id,
+            isNotice:body.isNotice,
+            isEvent:true,
+            text: body.text,
+            banner: banner,
+            image: image,
+            file: file,
+            video: video,
+            like_uid_list: body.like_uid_list,
+            participation_fee: body.participation_fee,
+            participation_uid_list: body.participation_uid_list,
+            paid_uid_list: body.paid_uid_list,
+            comment_id_list: body.comment_id_list,
+            title: body.title,
+            color: body.color,
+            start_day: body.start_day,
+            end_day: body.end_day,
+            place: body.place,
+            memo: body.memo
+        });
+
+        
+        if(post.length===0){
+            res.send('post create failed')
+        }else{
+            res.send(post);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 //POSTMAN
 router.post('/comment/:post_id',async(req,res,next)=>{
     try{
@@ -122,13 +184,24 @@ router.post('/comment/:post_id',async(req,res,next)=>{
 
 
 //바꾸고 싶은 내용 외에 다른 수정정보도 넣어야함. 코드 수정할 지 고민..
-router.patch('/:id',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
+//1. 유저가 수정 클릭.
+//2. 기존의 모든 정보가 수정 페이지에 업로드
+//3. 그 정보 전체다 보내기. (사실상 _id만 안바뀌고 새로운 post 한거임)
+//이미지가 수정되었을 경우..
+router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     try{
         const prevPost = await Post.findOne({_id:req.params.id});
         fileDeleter(prevPost);
 
         const body = JSON.parse(req.body.json)
+        var banner;
         var file=new Array(), image=new Array(), video=new Array();
+
+        if(typeof req.files['banner']!='undefined'){
+            banner=req.files['banner'][0].filename;
+        }else{
+            res.send('Banner is required')
+        }
 
         if(typeof req.files['file']!='undefined'){
             for(var i=0; i<req.files['file'].length; i++)
@@ -143,6 +216,8 @@ router.patch('/:id',uploader.fields([{name:'file'},{name:'image'},{name:'video'}
                 video.push(req.files['video'][i].filename);
         }
 
+
+        //$set 내부에 정의된 값들은 존재하지 않는다면 null이나 empty로 초기화됨에 유의
         const post = await Post.updateOne({_id:req.params.id},{$set:{
             isNotice:body.isNotice,
             text: body.text,
