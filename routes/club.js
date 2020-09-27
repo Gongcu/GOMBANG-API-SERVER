@@ -184,6 +184,39 @@ router.patch('/recruitment/:cid',async(req,res,next)=>{
 });
 
 //POSTMAN
+router.patch('/:cid/nickname/',async(req,res,next)=>{
+    try{
+        const getClub = await Club.findOne({_id:req.params.cid},{_id:0,used_nickname_list:1});
+        const nicknameList=getClub.used_nickname_list;
+        var isUsed=false;
+        var pulledNickname=null;
+        var result1=null, result2=null;
+        for(var i=0; i<nicknameList.length; i++){
+            if(nicknameList[i].uid===req.body.uid)
+                pulledNickname = nicknameList[i];
+            if(nicknameList[i].nickname===req.body.nickname)
+                isUsed=true;
+        }
+        if(pulledNickname!=null && isUsed==false){
+            var pushedNickname={
+                uid:req.body.uid,
+                nickname:req.body.nickname
+            }
+            result1 = await Club.updateOne({_id:req.params.cid},{$pull:{used_nickname_list:pulledNickname}});
+            result2 = await Club.updateOne({_id:req.params.cid},{$push:{used_nickname_list:pushedNickname}});
+        }
+        if(result1==null || result2==null){
+            res.send(false)
+        }else{
+            res.send(true);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN
 //존재하는 경우 추가x
 router.post('/member/:cid',async(req,res,next)=>{
     try{
