@@ -52,6 +52,7 @@ router.get('/:_id',async(req,res,next)=>{
 });
 
 
+
 //POSTMAN
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
@@ -114,6 +115,19 @@ router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
             else
                 result = await User.updateOne({_id:req.params.uid},{$push:{favorite_club_list:req.body.cid}});
         }
+        res.send(formatWriteResult(result));
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN
+router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
+    try{
+        var list = req.body.favorite_club_list;
+        const result = await User.updateOne({_id:req.params.uid},{$set:{favorite_club_list:list}});
+        
         res.send(formatWriteResult(result));
     }catch(err){
         console.error(err);
