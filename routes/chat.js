@@ -1,7 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const Chat = require('../schemas/chat')
-
+const multer = require('multer');
+const path = require('path');
+const uploader = multer({
+    storage: multer.diskStorage({
+        destination(req,file,cb){
+            cb(null, 'upload/');
+        },
+        filename(req,file,cb){
+            const ext = path.extname(file.originalname);
+            cb(null, path.basename(file.originalname,ext)+Date.now()+ext);
+        }
+    }),
+    limits: {fileSize: 5*1024*1024},
+});
 
 //특정 채팅방의 채팅 목록 가져오기 - 역순으로 가져오는게 나을수도
 router.get('/:chatroom_id',async(req,res,next)=>{

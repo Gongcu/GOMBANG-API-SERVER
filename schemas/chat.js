@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const formatDateTime = require('../etc/formatDateTime.js');
 
 const {Schema} = mongoose;
+const {Types:{ObjectId}}=Schema;
 const chatSchema = new Schema({
     chatroom_id:{
         type: ObjectId,
