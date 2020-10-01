@@ -13,6 +13,7 @@ const post = require('./routes/post')
 const portfolio = require('./routes/portfolio')
 const chat = require('./routes/chat')
 const chatroom = require('./routes/chatroom')
+const applicationForm = require('./routes/applicationForm')
 
 var http = require('http');
 var server = http.Server(app);
@@ -31,6 +32,8 @@ app.use('/calendar', calendar);
 app.use('/qna', qna);
 app.use('/post', post);
 app.use('/portfolio', portfolio);
+app.use('/applicationform', applicationForm);
+
 app.use('/chat', chat);
 app.use('/chatroom', chatroom);
 

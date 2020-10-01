@@ -15,6 +15,9 @@ const clubSchema = new Schema({
     text:{
         type: String,
     },
+    nickname_rule:{
+        type: String,
+    },
     president_uid:{
         type: String,
     },
