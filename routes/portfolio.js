@@ -5,8 +5,21 @@ const Portfolio = require('../schemas/portfolio')
 const formatWriteResult = require('../etc/formatWriteResult.js');
 const formatDeleteResult = require('../etc/formatDeleteResult.js');
 const formatDateTime = require('../etc/formatDateTime.js');
-const portfolio = require('../schemas/portfolio');
 
+const multer = require('multer');
+const path = require('path');
+const uploader = multer({
+    storage: multer.diskStorage({
+        destination(req,file,cb){
+            cb(null, 'upload/');
+        },
+        filename(req,file,cb){
+            const ext = path.extname(file.originalname);
+            cb(null, path.basename(file.originalname,ext)+Date.now()+ext);
+        }
+    }),
+    limits: {fileSize: 5*1024*1024},
+});
 
 //POSTMAN
 router.get('/:uid',async(req,res,next)=>{
@@ -30,7 +43,7 @@ router.get('/folder/:folder_id',async(req,res,next)=>{
     }
 });
 
-
+//POSTMAN 스크랩
 router.post('/:uid',async(req,res,next)=>{
     try{
         const getItem = await Portfolio.findOne({uid:req.params.uid,folder:req.body.folder});
@@ -52,20 +65,34 @@ router.post('/:uid',async(req,res,next)=>{
     }
 });
 
-router.post('/folder/:uid',async(req,res,next)=>{
+//POSTMAN 폴더 생성
+router.post('/folder/:uid',uploader.single('image'),async(req,res,next)=>{
     try{
-        const createPortpolio = await Portfolio.create({
-            uid:req.params.uid,
-            folder:req.body.folder,
-            post_id_list:[]
-        });
-        res.send(createPortpolio);
+        var createFolder;
+        if(req.file){
+            createFolder = await Portfolio.create({
+                uid:req.params.uid,
+                folder:req.body.folder,
+                description:req.body.description,
+                image:req.file.filename,
+                post_id_list:[]
+            });
+        }else{
+            createFolder = await Portfolio.create({
+                uid:req.params.uid,
+                folder:req.body.folder,
+                description:req.body.description,
+                post_id_list:[]
+            });
+        }
+        res.send(createFolder);
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
+//POSTMAN 폴더 즐겨찾기
 router.patch('/folder/favorite/:folder_id',async(req,res,next)=>{
     try{
         const set = await Portfolio.findOne({_id:req.params.folder_id});

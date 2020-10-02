@@ -56,46 +56,59 @@ router.get('/:_id',async(req,res,next)=>{
 //POSTMAN
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
-        const body = JSON.parse(req.body.json)
         var user;
         if(req.file){
             user = await User.create({
-                name: body.name,
+                name: req.body.name,
                 image: req.file.filename,
-                email: body.email,
-                token: body.token,
-                kakaoId: body.kakaoId,
-                birth: body.birth,
-                phone: body.phone,
-                login: body.login,
-                college: body.college,
-                department: body.department,
-                student_number: body.student_number,
-                nickname: body.nickname,
-                signed_club_list: body.signed_club_list,
-                favorite_club_list: body.favorite_club_list
+                email: req.body.email,
+                token: req.body.token,
+                kakaoId: req.body.kakaoId,
+                birth: req.body.birth,
+                phone: req.body.phone,
+                campus: req.body.campus,
+                college: req.body.college,
+                department: req.body.department,
+                student_number: req.body.student_number,
             });
         } else {
             user = await User.create({
-                name: body.name,
-                email: body.email,
-                token: body.token,
-                kakaoId: body.kakaoId,
-                birth: body.birth,
-                phone: body.phone,
-                login: body.login,
-                college: body.college,
-                department: body.department,
-                student_number: body.student_number,
-                nickname: body.nickname,
-                signed_club_list: body.signed_club_list,
-                favorite_club_list: body.favorite_club_list
+                name: req.body.name,
+                email: req.body.email,
+                token: req.body.token,
+                kakaoId: req.body.kakaoId,
+                birth: req.body.birth,
+                phone: req.body.phone,
+                campus: req.body.campus,
+                college: req.body.college,
+                department: req.body.department,
+                student_number: req.body.student_number,
             });
         }
         if(user.length===0){
             res.send('user create failed')
         }else{
             res.send(user);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN
+router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
+    try{
+        if(req.file){
+            const user = await User.findOneAndUpdate({_id:req.params.uid},{$set:{image:req.file.filename}});
+            //이전 이미지 제거
+            if(user.image !== "")
+                fs.unlink(appDir + '/upload/' + user.image, (err) => {
+                    console.log(err);
+                });
+            res.send(formatWriteResult(user));
+        }else{
+            res.send(false);
         }
     }catch(err){
         console.error(err);

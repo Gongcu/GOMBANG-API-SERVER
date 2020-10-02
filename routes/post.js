@@ -51,7 +51,6 @@ router.get('/comment/:post_id',async(req,res,next)=>{
 //POSTMAN
 router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     try{
-        const body = JSON.parse(req.body.json)
         var file=new Array(), image=new Array(), video=new Array();
 
         if(typeof req.files['file']!='undefined'){
@@ -61,35 +60,29 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
         if(typeof req.files['image']!='undefined'){
             for(var i=0; i<req.files['image'].length; i++)
                 image.push(req.files['image'][i].filename);
+                console.log(req.files['image'][0].filename);
         }
         if(typeof req.files['video']!='undefined'){
             for(var i=0; i<req.files['video'].length; i++)
                 video.push(req.files['video'][i].filename);
         }
-
-
         const post = await Post.create({
-            writer_uid: body.writer_uid,
-            club_id: body.club_id,
-            isNotice:body.isNotice,
-            text: body.text,
+            writer_uid: req.body.writer_uid,
+            club_id: req.body.club_id,
+            text: req.body.text,
+            isNotice:req.body.isNotice,
             image: image,
             file: file,
             video: video,
-            like_uid_list: body.like_uid_list,
-            participation_fee: body.participation_fee,
-            participation_uid_list: body.participation_uid_list,
-            paid_uid_list: body.paid_uid_list,
-            comment_id_list: body.comment_id_list,
-            title: body.title,
-            color: body.color,
-            start_day: body.start_day,
-            end_day: body.end_day,
-            place: body.place,
-            memo: body.memo
+            participation_fee: req.body.participation_fee,
+            title: req.body.title,
+            color: req.body.color,
+            startDate: req.body.startDate,
+            endDate: req.body.endDate,
+            place: req.body.place,
+            memo: req.body.memo
         });
 
-        
         if(post.length===0){
             res.send('post create failed')
         }else{
@@ -104,7 +97,6 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
 
 router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     try{
-        const body = JSON.parse(req.body.json)
         var banner;
         var file=new Array(), image=new Array(), video=new Array();
 
@@ -129,29 +121,24 @@ router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image
 
 
         const post = await Post.create({
-            writer_uid: body.writer_uid,
-            club_id: body.club_id,
-            isNotice:body.isNotice,
+            writer_uid: req.body.writer_uid,
+            club_id: req.body.club_id,
+            isNotice:req.body.isNotice,
             isEvent:true,
-            text: body.text,
+            text: req.body.text,
             banner: banner,
             image: image,
             file: file,
             video: video,
-            like_uid_list: body.like_uid_list,
-            participation_fee: body.participation_fee,
-            participation_uid_list: body.participation_uid_list,
-            paid_uid_list: body.paid_uid_list,
-            comment_id_list: body.comment_id_list,
-            title: body.title,
-            color: body.color,
-            start_day: body.start_day,
-            end_day: body.end_day,
-            place: body.place,
-            memo: body.memo
+            participation_fee: req.body.participation_fee,
+            title: req.body.title,
+            color: req.body.color,
+            startDate: req.body.startDate,
+            endDate: req.body.endDate,
+            place: req.body.place,
+            memo: req.body.memo
         });
 
-        
         if(post.length===0){
             res.send('post create failed')
         }else{
@@ -191,7 +178,7 @@ router.post('/comment/:post_id',async(req,res,next)=>{
 router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     try{
         const prevPost = await Post.findOne({_id:req.params.id});
-        fileDeleter(prevPost);
+        fileDeleter(prevPost);//이거 맨 마지막으로 옮기는게 좋을듯 수정 완료 되고 삭제하게
 
         const body = JSON.parse(req.body.json)
         var banner;

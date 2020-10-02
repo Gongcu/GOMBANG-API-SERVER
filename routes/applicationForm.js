@@ -37,46 +37,45 @@ router.get('/:club_id/:uid',async(req,res,next)=>{
 //POSTMAN
 router.post('/:club_id', async (req, res, next) => {
     try {
-        var itemCheck = await ApplicationForm.findOne({uid:req.body.uid,club_id:req.params.club_id});
-        //기존 신청서가 존재할 경우 제거
-        if(itemCheck!==null){
-            itemCheck = await ApplicationForm.findOneAndRemove({uid:req.body.uid,club_id:req.params.club_id});
-            //기존 신청서로 인해 등록된 동아리의 닉네임 제거 필요
-            await Club.updateOne({_id:req.params.club_id}, {$pull:{nickname:itemCheck.nickname}});
-        }
-
         //새로 입력한 닉네임 사용 가능 여부 확인
-        const exist = await Club.findOne({_id:req.params.cid,"used_nickname_list.nickname":req.body.nickname});
-        if(exist!==null){
+        const exist = await Club.findOne(
+            {_id:req.params.club_id,used_nickname_list:{$elemMatch: {nickname: req.body.nickname}}});
+        if(exist){
             res.send(req.body.nickname+' already exists') //End of the request
-        }
-        
-        const applicationform = await ApplicationForm.create({
-            uid: req.body.uid,
-            club_id: req.body.club_id,
-            name: req.body.name,
-            nickname: req.body.nickname,
-            gender: req.body.gender,
-            birth: req.body.birth,
-            campus: req.body.campus,
-            college: req.body.college,
-            department: req.body.department,
-            student_number: req.params.student_number,
-            phone: req.body.phone,
-            residence: req.body.residence,
-            experience: req.body.experience
-        });
-
-        if(applicationform!==null){
-            //닉네임 추가
-            var pushedNickname={
-                uid:req.body.uid,
-                nickname:req.body.nickname
+        }else{
+            var itemCheck = await ApplicationForm.findOne({uid:req.body.uid,club_id:req.params.club_id});
+            //기존 신청서가 존재할 경우 제거
+            if(itemCheck!==null){
+                itemCheck = await ApplicationForm.findOneAndRemove({uid:req.body.uid,club_id:req.params.club_id});
+                //기존 신청서로 인해 등록된 동아리의 닉네임 제거 필요
+                await Club.updateOne({_id:req.params.club_id},{$pull:{used_nickname_list:{nickname:req.params.nickname}}});
             }
-            await Club.updateOne({_id:req.params.club_id},{$push:{used_nickname_list:pushedNickname}});
+            const applicationform = await ApplicationForm.create({
+                uid: req.body.uid,
+                club_id: req.body.club_id,
+                name: req.body.name,
+                nickname: req.body.nickname,
+                gender: req.body.gender,
+                birth: req.body.birth,
+                campus: req.body.campus,
+                college: req.body.college,
+                department: req.body.department,
+                student_number: req.params.student_number,
+                phone: req.body.phone,
+                residence: req.body.residence,
+                experience: req.body.experience
+            });
+            if(applicationform!==null){
+                //닉네임 추가
+                var pushedNickname={
+                    uid:req.body.uid,
+                    nickname:req.body.nickname
+                }
+                await Club.updateOne({_id:req.params.club_id},{$push:{used_nickname_list:pushedNickname}});
+            }
+    
+            res.send(applicationform);
         }
-
-        res.send(applicationform);
     } catch (err) {
         console.error(err);
         next(err);
@@ -89,17 +88,24 @@ router.patch('/approve/:af_id',async(req,res,next)=>{
         var result = await ApplicationForm.findOneAndUpdate({_id:req.params.af_id,isApproved:false},{$set:{isApproved:true}});
 
         if(result!==null){
+            var message="false";
             const club = await Club.updateOne({_id:result.club_id},{$push:{member_uid_list:result.uid}});
             const user = await User.updateOne({_id:result.uid},{$push:{signed_club_list:result.club_id}});
+
             if(formatWriteResult(club)===false && formatWriteResult(club)===true){
                 await Club.updateOne({_id:result.club_id},{$pull:{member_uid_list:result.uid}});
+                message = "cannot push the member into the club"
             }else if(formatWriteResult(club)===true && formatWriteResult(club)===false){
                 await User.updateOne({_id:result.uid},{$pull:{signed_club_list:result.club_id}});
+                message = "cannot push the club into the user's club list"
             }
+
             if(formatWriteResult(club)===true && formatWriteResult(user)===true)
                 res.send(true);
-            else
-                res.send(false);
+            else{
+                var result = await ApplicationForm.updateOne({_id:req.params.af_id},{$set:{isApproved:false}});
+                res.send(message);
+            }
         }else{
             res.send('false:The applicationform is already approved or does not exist(_id)')
         }
@@ -111,7 +117,7 @@ router.patch('/approve/:af_id',async(req,res,next)=>{
 });
 
 //POSTMAN
-router.delete('/:af_id',async(req,res,next)=>{
+router.delete('/:club_id/:af_id',async(req,res,next)=>{
     try{
         var result = await ApplicationForm.findOneAndRemove({_id:req.params.af_id});
         await Club.updateOne({_id:req.params.club_id}, {$pull:{used_nickname_list:{nickname:result.nickname}}});

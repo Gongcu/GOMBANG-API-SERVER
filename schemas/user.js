@@ -14,7 +14,7 @@ const userSchema = new Schema({
     },
     login:{
         type: Boolean,
-        default: false
+        default: true
     },
     name:{
         type: String,
@@ -40,6 +40,10 @@ const userSchema = new Schema({
         type: String,
         default: ""
     },
+    campus:{
+        type: String,
+        default: ""
+    },
     college:{
         type: String,
         default: ""
@@ -55,6 +59,12 @@ const userSchema = new Schema({
         }
     ],
     favorite_club_list:[
+        {
+            type:ObjectId,
+            ref:"Club"
+        }
+    ],
+    alarm_club_list:[//동아리 설정
         {
             type:ObjectId,
             ref:"Club"

@@ -12,6 +12,12 @@ const portfolioSchema = new Schema({
         type:String,
         required:true,
     },
+    image:{
+        type:String,
+    },
+    description:{
+        type:String,
+    },
     isFavorite:{
         type:Boolean,
         default:false,
