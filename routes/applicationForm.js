@@ -117,10 +117,10 @@ router.patch('/approve/:af_id',async(req,res,next)=>{
 });
 
 //POSTMAN
-router.delete('/:club_id/:af_id',async(req,res,next)=>{
+router.delete('/:af_id',async(req,res,next)=>{
     try{
         var result = await ApplicationForm.findOneAndRemove({_id:req.params.af_id});
-        await Club.updateOne({_id:req.params.club_id}, {$pull:{used_nickname_list:{nickname:result.nickname}}});
+        await Club.updateOne({_id:result.club_id}, {$pull:{used_nickname_list:{nickname:result.nickname}}});
         res.send(formatDeleteResult(result));
     }catch(err){
         console.error(err);

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Chat = require('../schemas/chat')
+const ChatRoom = require('../schemas/chatroom')
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -27,10 +28,31 @@ router.get('/:chatroom_id',async(req,res,next)=>{
     }
 });
 
+router.post('/:chatroom_id',async(req,res,next)=>{
+    try{   
+        const chatroom = await ChatRoom.findOne({_id:req.params.chatroom_id});
+        const chat = await Chat.create({
+            chatroom_id: req.params.chatroom_id,
+            uid: req.body.uid,
+            message:req.body.message,
+            unread_uid_list: chatroom.participation_uid_list,
+        });
+        
+        req.app.get('io').sockets.in(req.params.chatroom_id).emit('new message', chat);
 
+        if(chat.length===0){
+            res.send('chat create failed')
+        }else{
+            res.send(chat);
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+/*
 router.post('/:chatroom_id',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     try{
-        const body = JSON.parse(req.body.json)
         var file=new Array(), image=new Array(), video=new Array();
 
         if(typeof req.files['file']!='undefined'){
@@ -45,17 +67,19 @@ router.post('/:chatroom_id',uploader.fields([{name:'file'},{name:'image'},{name:
             for(var i=0; i<req.files['video'].length; i++)
                 video.push(req.files['video'][i].filename);
         }
-
+        
+        const chatroom = await ChatRoom.findOne({_id:req.params.chatroom_id});
         const chat = await Chat.create({
-            chatroom_id: body.chatroom_id,
-            uid: body.uid,
-            message:body.message,
+            chatroom_id: req.params.chatroom_id,
+            uid: req.body.uid,
+            message:req.body.message,
             image: image,
             file: file,
             video: video,
-            contact: contact,
-            unread_uid_list: body.unread_uid_list,
+            contact: req.body.contact,
+            unread_uid_list: chatroom.participation_uid_list,
         });
+        req.app.io.sockets.in(req.body.chatroom_id).emit('new message', chat);
 
         if(chat.length===0){
             res.send('chat create failed')
@@ -66,7 +90,7 @@ router.post('/:chatroom_id',uploader.fields([{name:'file'},{name:'image'},{name:
         console.error(err);
         next(err);
     }
-});
+});*/
 
 
 

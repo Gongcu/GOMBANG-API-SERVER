@@ -15,8 +15,19 @@ router.get('/:club_id',async(req,res,next)=>{
     }
 });
 
+//채팅방 입장할 경우. 읽음표시, 채팅반환
+router.get('/enter/:chatroom_id',async(req,res,next)=>{
+    try{
+        var result = await Chat.updateMany({chatroom_id:req.params.chatroom_id},{$pull:{unread_uid_list:uid}});
+        res.send(result);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 
-//새로운 메시지에 대한 점멸등
+
+//새로운 메시지에 대한 점멸등 --> 이거 코딩 잘못됨 각 채팅방 별로 점멸등 킬지 말지 리스트 주는게 좋을듯
 router.get('flasher/:club_id/:uid',async(req,res,next)=>{
     try{
         const chat = await Chat.find({club_id:req.params.club_id}).sort({_id:1}).limit(1);
@@ -32,7 +43,20 @@ router.get('flasher/:club_id/:uid',async(req,res,next)=>{
     }
 });
 
-
+//POSTMAN
+router.post('/',async(req,res,next)=>{
+    try{
+        var result = await ChatRoom.create({
+            name:req.body.name,
+            club_id:req.body.club_id,
+            participation_uid_list:req.body.participation_uid_list
+        })
+        res.send(result);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 
 //POSTMAN
 router.post('/invite/:chatroom_id',async(req,res,next)=>{
@@ -45,16 +69,7 @@ router.post('/invite/:chatroom_id',async(req,res,next)=>{
     }
 });
 
-//채팅방 입장할 경우 - 읽지 않은 사람 리스트 업데이트 필요.
-router.patch('/enter/:chatroom_id',async(req,res,next)=>{
-    try{
-        var result = await Chat.updateMany({chatroom_id:req.params.chatroom_id},{$pull:{unread_uid_list:uid}});
-        res.send(result);
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
+
 
 
 //POSTMAN

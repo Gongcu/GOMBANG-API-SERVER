@@ -2,9 +2,15 @@ const mongoose = require('mongoose');
 const formatDate = require('../etc/formatDate.js');
 
 const {Schema} = mongoose;
+const {Types:{ObjectId}}=Schema;
 const answerSchema = new Schema({
+    question:{
+        type:ObjectId,
+        ref:'Question',
+        required: true,
+    },
     uid:{
-        type:String,
+        type:ObjectId,
         ref:'User',
         required: true,
     },

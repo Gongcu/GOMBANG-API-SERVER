@@ -15,14 +15,15 @@ const chat = require('./routes/chat')
 const chatroom = require('./routes/chatroom')
 const applicationForm = require('./routes/applicationForm')
 
-var http = require('http');
-var server = http.Server(app);
+ // 소켓 start
+const http = require('http');
+const server = http.createServer(app);
+const io = require('./io')(server)
+ // 소켓 end
  
-var socket = require('socket.io');
-var io = socket(server);
-
 connect();
 
+app.set('io',io);
 app.use(express.json({limit:'40mb'}));
 app.use('/user', user);
 app.use('/club', club);
@@ -32,11 +33,10 @@ app.use('/calendar', calendar);
 app.use('/qna', qna);
 app.use('/post', post);
 app.use('/portfolio', portfolio);
-app.use('/applicationform', applicationForm);
-
 app.use('/chat', chat);
 app.use('/chatroom', chatroom);
+app.use('/applicationform', applicationForm);
 
-app.listen(3000, () => { //3000번 포트
+server.listen(3000, () => { //3000번 포트
     console.log("the server is running")
 });
