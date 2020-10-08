@@ -3,6 +3,9 @@ const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
 const connect = require('./schemas');
+
+const {sequelize} = require('./models');
+
 const user = require('./routes/user');
 const club = require('./routes/club');
 const image = require('./routes/image')
@@ -25,6 +28,10 @@ connect();
 
 app.set('io',io);
 app.use(express.json({limit:'40mb'}));
+
+//테이블 내용 변경시 force:true
+sequelize.sync({force:false}).then(()=>{console.log("DB CONNECTED")}).catch((err)=>{console.log(err)});
+
 app.use('/user', user);
 app.use('/club', club);
 app.use('/image', image);

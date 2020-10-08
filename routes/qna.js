@@ -1,7 +1,6 @@
 const express = require('express');
 const Question = require('../schemas/question');
 const Answer = require('../schemas/answer');
-const {startSession} = require('mongoose')
 const formatWriteResult = require('../etc/formatWriteResult');
 const formatDeleteResult = require('../etc/formatDeleteResult');
 const router = express.Router();
@@ -52,21 +51,18 @@ router.post('/question',async(req,res,next)=>{
 
 //POSTMAN, 답글 작성시 답글 생성후 질문 id에 해당하는 로우의 answer 값을 answer의 id로 업데이트.
 router.post('/answer',async(req,res,next)=>{
-    const session = await startSession();
     try{
-        session.startTransaction();
         const answer = await Answer.create({
             question: req.body.question_id,
             uid: req.body.uid,
             answer: req.body.answer,
         });
+        if(answer===null){
+            res.send(false)
+        }
         const question = await Question.update({_id:req.body.question_id},{answer:answer._id, isAnswered:true});
-        await session.commitTransaction();
-        session.endSession();
         res.send(formatWriteResult(question));
     }catch(err){
-        await session.abortTransaction();
-        session.endSession();
         console.error(err);
         next(err);
     }
@@ -99,7 +95,7 @@ router.delete('/question/:id',async(req,res,next)=>{
     try{
         const question = await Question.findOneAndDelete({_id:req.params.id});
         if(question.isAnswered===true){
-            await Answer.deleteOne({_id:question.isAnswered})
+            await Answer.deleteOne({_id:question.answer})
         }
         res.send(formatDeleteResult(question))
     }catch(err){
@@ -111,8 +107,8 @@ router.delete('/question/:id',async(req,res,next)=>{
 //POSTMAN
 router.delete('/answer/:id',async(req,res,next)=>{
     try{
+        const question = await Question.updateOne({answer:req.params.id},{$set:{answer:"",isAnswered:false}});
         const answer = await Answer.findOneAndDelete({_id:req.params.id});
-        const question = await Question.updateOne({_id:answer.question},{$set:{answer:"",isAnswered:false}});
         res.send(formatDeleteResult(question))
     }catch(err){
         console.error(err);

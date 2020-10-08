@@ -4,7 +4,8 @@ function formatDateTime(dateTime) {
     day = '' + d.getDate(),
     year = d.getFullYear(),
     hour=d.getHours(),
-    minute=d.getMinutes(); 
+    minute=String(d.getMinutes()).padStart(2, "0");
+    
     if (month.length < 2) month = '0' + month;
     if (day.length < 2) day = '0' + day; 
 
