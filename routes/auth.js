@@ -3,15 +3,19 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const path = require('path');
-const User = require('../schemas/user')
-const formatWriteResult = require('../etc/formatWriteResult.js')
+const User = require('../models/user');
+const updateRow = require('../etc/updateRow');
 var appDir = path.dirname(require.main.filename);
 
-//POSTMAN
+//POSTMAN: 토큰갱신@
 router.patch('/token',async(req,res,next)=>{
     try{
-        const result = await User.updateOne({kakaoId:req.body.kakaoId},{token:req.body.token})
-        res.send(formatWriteResult(result));
+        const result = await User.update({
+           token:req.body.token},
+           {
+            where:{kakaoId:req.body.kakaoId}
+        });
+        res.send(updateRow(result));
     }catch(err){
         console.error(err);
         next(err);

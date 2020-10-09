@@ -1,24 +1,23 @@
 const express = require('express');
-const Calendar = require('../schemas/calendar');
-const formatWriteResult = require('../etc/formatWriteResult.js')
+const deleteRow = require('../etc/deleteRow');
+const updateRow = require('../etc/updateRow');
+const Calendar = require('../models/calendar');
 const router = express.Router();
 
 //쿼리로 달 별로 가져오게 할 건지 아니면 전체 다 가져오게 할 지 -> 성능상 무엇이 좋을까
 router.get('/:uid',async(req,res,next)=>{
     try{
-        const calendar = await Calendar.find({uid:req.params.uid})
-        if(calendar.length===0){
-            res.send('empty');
-        }else{
-            res.send(calendar);
-        }
+        const calendar = await Calendar.findAll({
+            where:{uid:req.params.uid}
+        })
+        res.send(calendar);
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN
+//POSTMAN: 일정추가@
 router.post('/',async(req,res,next)=>{
     try{
         const calendar = await Calendar.create({
@@ -30,41 +29,41 @@ router.post('/',async(req,res,next)=>{
                 place: req.body.place,
                 memo: req.body.memo,
         });
-        if(calendar.length===0){
-            res.send('calendar create failed')
-        }else{
-            res.send(calendar);
-        }
+        res.send(calendar)
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN
+//POSTMAN: 일정 수정@
 router.patch('/:id',async(req,res,next)=>{
     try{
         //전체 정보 다시 전달 받기(uid 제외 모두 업데이트)
-        const calendar = await Calendar.updateOne({_id:req.params.id},{$set:
-                {title:req.body.title,
+        const calendar = await Calendar.update({
+                title:req.body.title,
                 color:req.body.color,
                 startDate:req.body.startDate,
                 endDate:req.body.endDate,
                 place:req.body.place,
                 memo:req.body.memo
-            }});
-        res.send(formatWriteResult(calendar));
+            },{
+                where:{id:req.params.id}
+            });
+        res.send(updateRow(calendar));
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN
+//POSTMAN: 일정 삭제
 router.delete('/:id',async(req,res,next)=>{
     try{
-        const calendar = await Calendar.remove({_id:req.params.id});
-        res.send(calendar);
+        const calendar = await Calendar.destroy({
+            where:{id:req.params.id}
+        });
+        res.send(deleteRow(calendar));
     }catch(err){
         console.error(err);
         next(err);

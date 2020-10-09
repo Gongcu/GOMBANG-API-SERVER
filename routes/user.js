@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
-const User = require('../schemas/user');
-const formatWriteResult = require('../etc/formatWriteResult.js');
-const formatDeleteResult = require('../etc/formatDeleteResult.js');
+const User = require('../models/user');
+const Club = require('../models/club');
+const User_favorite_club = require('../models/user_favorite_club');
+const {Op} = require('sequelize');
+const updateRow = require('../etc/updateRow')
+const deleteRow = require('../etc/deleteRow')
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -25,25 +28,7 @@ router.use(bodyParser.json());
 
 router.get('/',async(req,res,next)=>{
     try{
-        const user = await User.find({});
-        if(user.length===0){
-            res.send('empty');
-        }else{
-            res.send(user);
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
-//POSTMAN
-router.get('/:_id',async(req,res,next)=>{
-    try{
-        var user = await User.findOne({kakaoId:req.params._id}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
-        if(user === null){
-            user = await User.findOne({_id:req.params._id}).populate('signed_club_list','name image').populate('favorite_club_list','name image');
-        }
+        const user = await User.findAll({});
         res.send(user);
     }catch(err){
         console.error(err);
@@ -51,9 +36,41 @@ router.get('/:_id',async(req,res,next)=>{
     }
 });
 
-
-
 //POSTMAN
+router.get('/:id',async(req,res,next)=>{
+    try{
+        const user = await User.findOne({
+            where:{
+                [Op.or]:[{kakaoId:req.params.id},{id:req.params.id}],
+            },
+        });
+        res.send(user);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN: 동아리 즐겨찾기 추가/삭제
+router.get('/favorite_club_list/:uid',async(req,res,next)=>{
+    try{
+        const list = await User_favorite_club.findAll({
+            where:{uid:req.params.uid},
+            include:[{
+                model:Club
+            }],
+            order:[['itemOrder','ASC']]
+        });
+        res.send(list);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+
+//POSTMAN: 유저 추가@
 router.post('/',uploader.single('image'),async(req,res,next)=>{
     try{
         var user;
@@ -85,28 +102,32 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 student_number: req.body.student_number,
             });
         }
-        if(user.length===0){
-            res.send('user create failed')
-        }else{
-            res.send(user);
-        }
+        res.send(user);
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN
+
+
+//POSTMAN: 프로필 이미지 변경@
 router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
     try{
         if(req.file){
-            const user = await User.findOneAndUpdate({_id:req.params.uid},{$set:{image:req.file.filename}});
-            //이전 이미지 제거
-            if(user.image !== "")
-                fs.unlink(appDir + '/upload/' + user.image, (err) => {
+            const prevUserProfile = await User.findOne({
+                where:{id:req.params.uid}
+            });
+            if(prevUserProfile.image !== "")
+                fs.unlink(appDir + '/upload/' + prevUserProfile.image, (err) => {
                     console.log(err);
                 });
-            res.send(formatWriteResult(user));
+            const user = await User.update({
+                image:req.file.filename
+            },{
+                where:{id:req.params.uid}
+            });
+            res.send(updateRow(user));
         }else{
             res.send(false);
         }
@@ -116,48 +137,82 @@ router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
-//POSTMAN
+//POSTMAN: 동아리 즐겨찾기 추가/삭제
 router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
     try{
-        var result;
-        const user = await User.findOne({_id:req.params.uid});
-        if(user.length!==0){
-            const exist=user.favorite_club_list.indexOf(req.body.cid);
-            if(exist!==-1)
-                result = await User.updateOne({_id:req.params.uid},{$pull:{favorite_club_list:req.body.cid}});
+        const exist = await User_favorite_club.findOne({
+            where:{uid:req.params.uid,cid:req.body.cid}
+        });
+        if(!exist){//존재하지 않음:추가
+            const maxOrderedItem = await User_favorite_club.findOne({
+                where:{uid:req.params.uid},
+                order:[['itemOrder','DESC']],
+            })
+            let maxOrder = maxOrderedItem.itemOrder+1;
+            console.log(maxOrder);
+            if(maxOrder===null){
+                maxOrder=0;
+            }
+            console.log(maxOrder);
+
+            const result1 = await User_favorite_club.create({
+                uid:req.params.uid,
+                cid:req.body.cid,
+                itemOrder:maxOrder
+            })
+            if(result1)
+                res.send(updateRow(1))
             else
-                result = await User.updateOne({_id:req.params.uid},{$push:{favorite_club_list:req.body.cid}});
+                res.send(updateRow(0))
+        }else{//존재:삭제
+            const result2 = await User_favorite_club.destroy({
+                where:{uid:req.params.uid,cid:req.body.cid}
+            });
+            res.send(deleteRow(result2))
         }
-        res.send(formatWriteResult(result));
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN
+//POSTMAN: 동아리 즐겨찾기 순서변경
 router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
     try{
+        var i=0;
         var list = req.body.favorite_club_list;
-        const result = await User.updateOne({_id:req.params.uid},{$set:{favorite_club_list:list}});
-        
-        res.send(formatWriteResult(result));
+        for(; i<list.length; i++){
+            await User_favorite_club.update({
+                itemOrder:i
+            },{
+                where:{uid:req.params.uid,cid:list[i]}
+            })
+        }
+        if(i===list.length){
+            res.send(updateRow(1))
+        }else{
+            res.send(updateRow(0))
+        }
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-
+//POSTMAN: 유저 삭제
 router.delete('/:uid',async(req,res,next)=>{
     try{
-        const user = await User.remove({_id:req.params.uid});
+        const user = await User.findOne({
+            where:{id:req.params.uid}});
         if(user.image){
             fs.unlink(appDir+'/upload/'+user.image, (err) => {
                 console.log(err);
             });
         }
-        res.send(formatDeleteResult(user));
+        const result = await User.destroy({
+            where:{id:req.params.uid}});
+        
+        res.send(deleteRow(result));
     }catch(err){
         console.error(err);
         next(err);

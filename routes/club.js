@@ -1,8 +1,12 @@
 const express = require('express');
-const formatWriteResult = require('../etc/formatWriteResult.js');
-const Club = require('../schemas/club');
-const Post = require('../schemas/post');
-const User = require('../schemas/user');
+const deleteRow = require('../etc/deleteRow.js');
+const updateRow = require('../etc/updateRow.js');
+
+const Club = require('../models/club');
+const Club_user = require('../models/club_user');
+const User = require('../models/user');
+const Hashtag = require('../models/hashtag');
+
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -18,8 +22,6 @@ const uploader = multer({
     limits: {fileSize: 5*1024*1024},
 });
 const fs = require('fs');
-const { send } = require('process');
-const formatDeleteResult = require('../etc/formatDeleteResult.js');
 var appDir = path.dirname(require.main.filename);
 
 const router = express.Router();
@@ -27,12 +29,8 @@ const router = express.Router();
 //POSTMAN
 router.get('/',async(req,res,next)=>{
     try{
-        const club = await Club.find({});
-        if(club.length===0){
-            res.send('empty');
-        }else{
-            res.send(club);
-        }
+        const club = await Club.findAll({});
+        res.send(club);
     }catch(err){
         console.error(err);
         next(err);
@@ -42,15 +40,18 @@ router.get('/',async(req,res,next)=>{
 //POSTMAN
 router.get('/:club_id',async(req,res,next)=>{
     try{
-        const club = await Club.findOne({_id:req.params.club_id});//.populate('member_uid_list')//.populate('manager_uid_list');
+        const club = await Club.findOne({
+            where:{id:req.params.club_id},
+        });
+        //443p N:M관계 에제:해시태그
         res.send(club);
     }catch(err){
         console.error(err);
         next(err);
     }
 });
-
-//POSTMAN
+/*
+//POSTMAN: 동아리 내 작성글
 router.get('/:club_id/:uid/mypost/',async(req,res,next)=>{
     try{
         const post = await Post.find({club_id:req.params.club_id,writer_uid:req.params.uid});//.populate('member_uid_list')//.populate('manager_uid_list');
@@ -60,12 +61,13 @@ router.get('/:club_id/:uid/mypost/',async(req,res,next)=>{
         next(err);
     }
 });
-
-//POSTMAN 닉네임 사용가능 여부
-router.get('/:cid/nickname/:nickname',async(req,res,next)=>{
+*/
+//POSTMAN 닉네임 사용가능 여부@
+router.get('/:club_id/nickname/:nickname',async(req,res,next)=>{
     try{
-        var result = await Club.findOne(
-            {_id:req.params.cid,used_nickname_list:{$elemMatch: {nickname: req.params.nickname}}});
+        var result = await Club_user.findOne({
+            where:{cid:req.params.club_id,nickname:req.params.nickname}
+        });
         if(result){
             res.send(false);
         }else{
@@ -81,91 +83,79 @@ router.get('/:cid/nickname/:nickname',async(req,res,next)=>{
 
 
 
-//POSTMAN
+//POSTMAN: 동아리 회원 리스트@
 router.get('/:club_id/member',async(req,res,next)=>{
     try{
-        const club = await Club.findOne({_id:req.params.club_id}).populate('member_uid_list');
-        if(club.length===0){
-            res.send('empty');
-        }else{
-            res.send(club.member_uid_list);
-        }
+        const member = await Club_user.findAll({
+           where:{cid:req.params.club_id},
+           include:[{
+                model:User
+           }]
+        });
+        res.send(member);
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN
+//POSTMAN: 동아리 매니저 리스트@
 router.get('/:club_id/manager',async(req,res,next)=>{
     try{
-        const club = await Club.findOne({_id:req.params.club_id}).populate('manager_uid_list');
-        if(club.length===0){
-            res.send('empty');
-        }else{
-            res.send(club.manager_uid_list);
-        }
+        const manager = await Club_user.findAll({
+            where:{cid:req.params.club_id,manager:true},
+            include:[{
+                model:User,
+            }]
+         });
+         res.send(manager);
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN
+//POSTMAN: 동아리 추가@
 router.post('/',uploader.single('image'),async(req,res,next)=>{
-    try{
+    try {
         var club;
 
-        const presidentNickname = {
-            uid:req.body.president_uid,
-            name:req.body.name+' 회장'
-        }
-        var htlist=[];
-        if(typeof req.body.hashtags != 'undefined'){
-            var items = req.body.hashtags.split(',');
-            for(var i=0; i<items.length; i++)
-                htlist.push(items[i]);
-        }
-
-        
-        if(req.file){
+        //동아리 생성
+        if (req.file) {
             club = await Club.create({
                 name: req.body.name,
                 image: req.file.filename,
                 campus: req.body.campus,
-                president_uid: req.body.president_uid,
-                member_uid_list: [req.body.president_uid],
                 certification: req.body.certification,
-                type:req.body.type,
-                classification:req.body.classification,
-                member_count:1,
-                manager_uid_list:[req.body.president_uid],
-                used_nickname_list:[presidentNickname],
-                recruitment:req.body.recruitment,
-                hashtags:htlist
+                type: req.body.type,
+                classification: req.body.classification,
+                member_count: 1,
+                recruitment: req.body.recruitment,
             });
-        }else{
+        } else {
             club = await Club.create({
                 name: req.body.name,
                 campus: req.body.campus,
-                president_uid: req.body.president_uid,
-                member_uid_list: [req.body.president_uid],
                 certification: req.body.certification,
-                type:req.body.type,
-                classification:req.body.classification,
-                member_count:1,
-                manager_uid_list:[req.body.president_uid],
-                used_nickname_list:[presidentNickname],
-                hashtags:htlist
+                type: req.body.type,
+                classification: req.body.classification,
+                member_count: 1,
             });
         }
-        
-        if(club.length===0){
-            res.send('club create failed')
-        }else{
-            const user = await User.updateOne({_id:req.body.president_uid}, {$push:{signed_club_list:club._id}});
-            res.send(club);
+
+        await Club_user.create({
+            uid: req.body.president_uid,
+            cid: club.id,
+            manager: true,
+            nickname: req.body.name + ' 회장'
+        })
+        if (typeof req.body.hashtags != 'undefined') {
+            var items = req.body.hashtags.split(',');
+            for (var i = 0; i < items.length; i++)
+                await Hashtag.create({ cid: club.id, hashtag: items[i] });
         }
+        res.send(club);
+
     }catch(err){
         console.error(err);
         next(err);
@@ -182,114 +172,41 @@ router.patch('/profile/:club_id',uploader.single('image'),async(req,res,next)=>{
             for(var i=0; i<items.length; i++)
                 htlist.push(items[i]);
         }
-            
+        
+        //해시태그 업데이트
+        await Hashtag.destroy({
+            where:{cid:req.params.club_id}
+        });
+        for(var i=0; i<htlist.length; i++){
+            await Hashtag.create({
+                cid:club.id,
+                Hashtag:htlist[i]
+            })
+        }
+
         if(req.file){
             //이전 이미지 삭제
-            const prevItem = await Club.findOne({_id:req.params.club_id});
+            const prevItem = await Club.findOne({id:req.params.club_id});
             fs.unlink(appDir + '/upload/' + prevItem.image, (err) => {
                 console.log(err);
             });
-
-            club = await Club.updateOne({_id:req.params.club_id},{$set:{
+            club = await Club.update({
                 image: req.file.filename,
                 text: req.body.text,
                 nickname_rule: req.body.nickname_rule,
                 membership_fee:req.body.membership_fee,
-                hashtags:htlist
-            }});
+            },{
+                where:{id:req.params.club_id}
+            });
         }else{
-            club = await Club.updateOne({_id:req.params.club_id},{$set:{
+            club = await Club.update({
                 text: req.body.text,
                 nickname_rule: req.body.nickname_rule,
                 membership_fee:req.body.membership_fee,
-                hashtags:htlist
-            }});
+            },{
+                where:{id:req.params.club_id}
+            });
         }
-        res.send(formatWriteResult(club));
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
-//POSTMAN
-router.patch('/exposure/:cid',async(req,res,next)=>{
-    try{
-        const getClub = await Club.findOne({_id:req.params.cid},{_id:0,exposure:1})
-        const club = await Club.updateOne({_id:req.params.cid},{$set:{exposure:getClub.exposure}});
-        if(formatWriteResult(club)===false){
-            res.send('update failed')
-        }else{
-            res.send(true);
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
-//POSTMAN
-router.patch('/recruitment/:cid',async(req,res,next)=>{
-    try{
-        const getClub = await Club.findOne({_id:req.params.cid},{_id:0,recruitment:1})
-        const club = await Club.updateOne({_id:req.params.cid},{$set:{recruitment:getClub.recruitment}});
-        if(club.length===0){
-            res.send('update failed')
-        }else{
-            res.send(formatWriteResult(club));
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
-//POSTMAN
-router.patch('/:cid/nickname/',async(req,res,next)=>{
-    try{
-        const exist = await Club.findOne({_id:req.params.cid,"used_nickname_list.nickname":req.body.nickname});
-        if(exist!==null){
-            console.log(exist);
-            res.send(false);
-        }else{
-            //특정 동아리의 사용중 닉네임리스트에서 해당하는 uid를 찾아 --> 닉네임을 바꾼다.
-            var result = await Club.updateOne(
-                {_id:req.params.cid,used_nickname_list:{$elemMatch: {uid: req.body.uid}}},
-                 {$set:{"used_nickname_list.$.nickname":req.body.nickname}});
-            res.send(formatWriteResult(result));
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
-
-
-//POSTMAN
-router.post('/manager/:club_id',async(req,res,next)=>{
-    try{
-        const exist = await Club.findOne({_id:req.params.club_id,manager_uid_list:req.body.uid});
-        if(exist){
-            res.send(false);
-        }else{
-            const club = await Club.updateOne({_id:req.params.club_id},{$push:{manager_uid_list:req.body.uid}});
-            res.send(formatWriteResult(club));
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
-
-//POSTMAN
-router.delete('/:club_id',async(req,res,next)=>{
-    try{
-        const club = await Club.remove({_id:req.params.club_id});
-        fs.unlink(appDir+'/upload/'+club.image, (err) => {
-            console.log(err);
-        });
         res.send(club);
     }catch(err){
         console.error(err);
@@ -297,11 +214,58 @@ router.delete('/:club_id',async(req,res,next)=>{
     }
 });
 
-//POSTMAN
-router.delete('/:club_id/nickname/:nickname',async(req,res,next)=>{
+//POSTMAN: 공개/비공개 전환@
+router.patch('/exposure/:club_id',async(req,res,next)=>{
     try{
-        const user = await Club.updateOne({_id:req.params.club_id},{$pull:{used_nickname_list:{nickname:req.params.nickname}}});
-        res.send(formatWriteResult(user));
+        const getClub = await Club.findOne({id:req.params.club_id})
+        const bool = !getClub.exposure
+        const club = await Club.update({
+                exposure:bool
+            },
+            {
+                where: {id:req.params.club_id}
+            });
+        res.send(updateRow(club))
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN: 모집 상태 전환@
+router.patch('/recruitment/:club_id',async(req,res,next)=>{
+    try{
+        const getClub = await Club.findOne({id:req.params.club_id})
+        const bool = !getClub.recruitment
+        const club = await Club.update({
+                recruitment:bool
+            },{
+                where: {id:req.params.club_id}
+            });
+        res.send(updateRow(club))
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+//POSTMAN: 닉네임 변경@
+router.patch('/:club_id/nickname/',async(req,res,next)=>{
+    try{
+        const exist = await Club_user.findOne({
+            where:{cid:req.params.club_id,nickname:req.body.nickname}
+        });
+        if(exist!==null){
+            console.log(exist);
+            res.send(updateRow(0));
+        }else{
+            const result = await Club_user.update({
+                nickname:req.body.nickname
+            },{
+                where:{cid:req.params.club_id,uid:req.body.uid}
+            })
+            res.send(updateRow(result));
+        }
     }catch(err){
         console.error(err);
         next(err);
@@ -309,12 +273,57 @@ router.delete('/:club_id/nickname/:nickname',async(req,res,next)=>{
 });
 
 
-//POSTMAN
+
+//POSTMAN:매니저로 변경@
+router.post('/manager/:club_id',async(req,res,next)=>{
+    try{
+        const result = await Club_user.update({
+            manager:true,
+        },{
+            where:{cid:req.params.club_id,uid:req.body.uid}
+        });
+        res.send(updateRow(result));
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+//POSTMAN: 동아리 삭제@
+router.delete('/:club_id',async(req,res,next)=>{
+    try{
+        const club = await Club.findOne({
+            where:{id:req.params.club_id}
+        });
+        if(!club){
+            res.send(deleteRow(0));
+        }else{
+            fs.unlink(appDir+'/upload/'+club.image, (err) => {
+                console.log(err);
+            });
+            const result = await Club.destroy({
+                where:{id:req.params.club_id}
+            });
+            await Club_user.destroy({
+                where:{cid:req.params.club_id}
+            });
+            res.send(deleteRow(result));
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+//POSTMAN: 동아리 회원 탈퇴,추방@
 router.delete('/member/:club_id/:uid',async(req,res,next)=>{
     try{
-        const user = await User.updateOne({_id:req.params.uid},{$pull:{signed_club_list:req.params.club_id}});
-        const result = await Club.updateOne({_id:req.params.club_id}, {$pull:{used_nickname_list:{uid:req.params.uid}, member_uid_list:req.params.uid}});
-        res.send(formatWriteResult(result));
+        const result = await Club_user.destroy({
+            where:{uid:req.params.uid, cid:req.params.club_id}
+        })
+        res.send(updateRow(result));
     }catch(err){
         console.error(err);
         next(err);
@@ -322,11 +331,16 @@ router.delete('/member/:club_id/:uid',async(req,res,next)=>{
 });
 
 
-//POSTMAN
+//POSTMAN: 매니저 해임 -> 일반멤버 변경@
 router.delete('/manager/:club_id/:uid',async(req,res,next)=>{
     try{
-        const club = await Club.updateOne({_id:req.params.club_id},{$pull:{manager_uid_list:req.params.uid}});
-        res.send(formatWriteResult(club));
+        const result = await Club_user.update({
+            manager:false
+            }
+            ,{
+                where:{cid:req.params.club_id,uid:req.params.uid}
+            })
+        res.send(updateRow(result));
     }catch(err){
         console.error(err);
         next(err);
