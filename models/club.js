@@ -68,10 +68,11 @@ module.exports = class Club extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Club.hasMany(db.Club_user,{foreignKey:'cid',sourceKey:'id'});
-        db.Club.hasMany(db.ApplicationForm,{foreignKey:'cid',sourceKey:'id'});
-        db.Club.hasMany(db.User_favorite_club,{foreignKey:'cid',sourceKey:'id'});
-
+        db.Club.hasMany(db.Club_user,{foreignKey:'club_id',sourceKey:'id'});
+        db.Club.hasMany(db.ApplicationForm,{foreignKey:'club_id',sourceKey:'id'});
+        db.Club.hasMany(db.User_favorite_club,{foreignKey:'club_id',sourceKey:'id'});
+        db.Club.hasMany(db.Question,{foreignKey:'club_id',sourceKey:'id'});
+        db.Club.hasMany(db.Post,{foreignKey:'club_id',sourceKey:'id'});
         db.Club.belongsToMany(db.Hashtag,{through:'ClubHashtag',as:'hashtags'});
     }
 };

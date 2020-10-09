@@ -64,24 +64,18 @@ module.exports = class User extends Sequelize.Model{
         db.User.hasMany(db.Club_user,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.ApplicationForm,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.User_favorite_club,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Question,{foreignKey:'uid',sourceKey:'id'});
 
+        db.User.hasMany(db.Post,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Comment,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Like,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Post_paid_user,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Post_participation_user,{foreignKey:'uid',sourceKey:'id'});
     }
 };
 
 
 /*
-signed_club_list:[
-    {
-        type:ObjectId,
-        ref:"Club"
-    }
-],
-favorite_club_list:[
-    {
-        type:ObjectId,
-        ref:"Club"
-    }
-],
 alarm_club_list:[//동아리 설정
     {
         type:ObjectId,

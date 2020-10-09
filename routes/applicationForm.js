@@ -12,7 +12,7 @@ const deleteRow = require('../etc/deleteRow');
 router.get('/:club_id',async(req,res,next)=>{
     try{
         const applicationform = await ApplicationForm.findAll({
-            where:{cid:req.params.club_id}
+            where:{club_id:req.params.club_id}
         })
         res.send(applicationform);
     }catch(err){
@@ -29,7 +29,7 @@ router.get('/:club_id',async(req,res,next)=>{
 router.get('/:club_id/:uid',async(req,res,next)=>{
     try{
         const applicationform = await ApplicationForm.findOne({
-            where:{uid:req.params.uid,cid:req.params.club_id}
+            where:{uid:req.params.uid,club_id:req.params.club_id}
         })//.populate('post_id_list');
         res.send(applicationform);
     }catch(err){
@@ -42,7 +42,7 @@ router.get('/:club_id/:uid',async(req,res,next)=>{
 router.post('/:club_id', async (req, res, next) => {
     try {
         var itemCheck = await ApplicationForm.findOne({
-            where: { uid: req.body.uid, cid: req.params.club_id }
+            where: { uid: req.body.uid, club_id: req.params.club_id }
         });
         //기존 신청서가 존재할 경우 제거
         if (itemCheck !== null) {
@@ -52,7 +52,7 @@ router.post('/:club_id', async (req, res, next) => {
         }
         const applicationform = await ApplicationForm.create({
             uid: req.body.uid,
-            cid: req.body.club_id,
+            club_id: req.body.club_id,
             name: req.body.name,
             nickname: req.body.nickname,
             gender: req.body.gender,
@@ -86,8 +86,8 @@ router.patch('/approve/:af_id',async(req,res,next)=>{
         });
         const result = await Club_user.create({
             uid:applicationForm.uid,
-            cid:applicationForm.cid,
-            nickname:applicationForm.cid,
+            club_id:applicationForm.club_id,
+            nickname:applicationForm.club_id,
         });
         if(result)
             res.send(true)

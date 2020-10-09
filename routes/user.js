@@ -141,7 +141,7 @@ router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
 router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
     try{
         const exist = await User_favorite_club.findOne({
-            where:{uid:req.params.uid,cid:req.body.cid}
+            where:{uid:req.params.uid,club_id:req.body.club_id}
         });
         if(!exist){//존재하지 않음:추가
             const maxOrderedItem = await User_favorite_club.findOne({
@@ -157,7 +157,7 @@ router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
 
             const result1 = await User_favorite_club.create({
                 uid:req.params.uid,
-                cid:req.body.cid,
+                club_id:req.body.club_id,
                 itemOrder:maxOrder
             })
             if(result1)
@@ -166,7 +166,7 @@ router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
                 res.send(updateRow(0))
         }else{//존재:삭제
             const result2 = await User_favorite_club.destroy({
-                where:{uid:req.params.uid,cid:req.body.cid}
+                where:{uid:req.params.uid,club_id:req.body.club_id}
             });
             res.send(deleteRow(result2))
         }
@@ -185,7 +185,7 @@ router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
             await User_favorite_club.update({
                 itemOrder:i
             },{
-                where:{uid:req.params.uid,cid:list[i]}
+                where:{uid:req.params.uid,club_id:list[i]}
             })
         }
         if(i===list.length){

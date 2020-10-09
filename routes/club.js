@@ -66,7 +66,7 @@ router.get('/:club_id/:uid/mypost/',async(req,res,next)=>{
 router.get('/:club_id/nickname/:nickname',async(req,res,next)=>{
     try{
         var result = await Club_user.findOne({
-            where:{cid:req.params.club_id,nickname:req.params.nickname}
+            where:{club_id:req.params.club_id,nickname:req.params.nickname}
         });
         if(result){
             res.send(false);
@@ -87,7 +87,7 @@ router.get('/:club_id/nickname/:nickname',async(req,res,next)=>{
 router.get('/:club_id/member',async(req,res,next)=>{
     try{
         const member = await Club_user.findAll({
-           where:{cid:req.params.club_id},
+           where:{club_id:req.params.club_id},
            include:[{
                 model:User
            }]
@@ -103,7 +103,7 @@ router.get('/:club_id/member',async(req,res,next)=>{
 router.get('/:club_id/manager',async(req,res,next)=>{
     try{
         const manager = await Club_user.findAll({
-            where:{cid:req.params.club_id,manager:true},
+            where:{club_id:req.params.club_id,manager:true},
             include:[{
                 model:User,
             }]
@@ -145,14 +145,14 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
 
         await Club_user.create({
             uid: req.body.president_uid,
-            cid: club.id,
+            club_id: club.id,
             manager: true,
             nickname: req.body.name + ' 회장'
         })
         if (typeof req.body.hashtags != 'undefined') {
             var items = req.body.hashtags.split(',');
             for (var i = 0; i < items.length; i++)
-                await Hashtag.create({ cid: club.id, hashtag: items[i] });
+                await Hashtag.create({ club_id: club.id, hashtag: items[i] });
         }
         res.send(club);
 
@@ -175,11 +175,11 @@ router.patch('/profile/:club_id',uploader.single('image'),async(req,res,next)=>{
         
         //해시태그 업데이트
         await Hashtag.destroy({
-            where:{cid:req.params.club_id}
+            where:{club_id:req.params.club_id}
         });
         for(var i=0; i<htlist.length; i++){
             await Hashtag.create({
-                cid:club.id,
+                club_id:club.id,
                 Hashtag:htlist[i]
             })
         }
@@ -253,7 +253,7 @@ router.patch('/recruitment/:club_id',async(req,res,next)=>{
 router.patch('/:club_id/nickname/',async(req,res,next)=>{
     try{
         const exist = await Club_user.findOne({
-            where:{cid:req.params.club_id,nickname:req.body.nickname}
+            where:{club_id:req.params.club_id,nickname:req.body.nickname}
         });
         if(exist!==null){
             console.log(exist);
@@ -262,7 +262,7 @@ router.patch('/:club_id/nickname/',async(req,res,next)=>{
             const result = await Club_user.update({
                 nickname:req.body.nickname
             },{
-                where:{cid:req.params.club_id,uid:req.body.uid}
+                where:{club_id:req.params.club_id,uid:req.body.uid}
             })
             res.send(updateRow(result));
         }
@@ -280,7 +280,7 @@ router.post('/manager/:club_id',async(req,res,next)=>{
         const result = await Club_user.update({
             manager:true,
         },{
-            where:{cid:req.params.club_id,uid:req.body.uid}
+            where:{club_id:req.params.club_id,uid:req.body.uid}
         });
         res.send(updateRow(result));
     }catch(err){
@@ -306,7 +306,7 @@ router.delete('/:club_id',async(req,res,next)=>{
                 where:{id:req.params.club_id}
             });
             await Club_user.destroy({
-                where:{cid:req.params.club_id}
+                where:{club_id:req.params.club_id}
             });
             res.send(deleteRow(result));
         }
@@ -321,7 +321,7 @@ router.delete('/:club_id',async(req,res,next)=>{
 router.delete('/member/:club_id/:uid',async(req,res,next)=>{
     try{
         const result = await Club_user.destroy({
-            where:{uid:req.params.uid, cid:req.params.club_id}
+            where:{uid:req.params.uid, club_id:req.params.club_id}
         })
         res.send(updateRow(result));
     }catch(err){
@@ -338,7 +338,7 @@ router.delete('/manager/:club_id/:uid',async(req,res,next)=>{
             manager:false
             }
             ,{
-                where:{cid:req.params.club_id,uid:req.params.uid}
+                where:{club_id:req.params.club_id,uid:req.params.uid}
             })
         res.send(updateRow(result));
     }catch(err){

@@ -20,6 +20,6 @@ module.exports = class User_favorite_club extends Sequelize.Model{
     }
     static associate(db){
         db.User_favorite_club.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.User_favorite_club.belongsTo(db.Club,{foreignKey:'cid',targetKey:'id'});
+        db.User_favorite_club.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
     }
 };

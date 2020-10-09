@@ -1,94 +1,56 @@
 const Sequelize = require('sequelize');
+const formatDateTime = require('../etc/formatDateTime');
 
 module.exports = class Post extends Sequelize.Model{
     static init(sequelize){
         return super.init({
-            writer_uid:{
-                type:Sequelize.STRING(30),
-                allowNull:false,
-            },
-            cid:{
-                type:Sequelize.STRING(100),
-                allowNull:true,
-            },
             isNotice:{
-                type:Sequelize.STRING(10),
-                allowNull:false,
-            },
-            isEvent:{
-                type:Sequelize.STRING(250),
-                allowNull:true,
-                defaultValue:"",
-            },
-            text:{
-                type:Sequelize.STRING(30),
-                allowNull:true,
-            },
-            banner:{
                 type:Sequelize.BOOLEAN,
                 allowNull:false,
                 defaultValue:false,
             },
-            image:{
-                type:Sequelize.STRING(10),
-                allowNull:true,
+            isEvent:{
+                type:Sequelize.BOOLEAN,
+                allowNull:false,
+                defaultValue:false,
             },
-            file:{
-                type:Sequelize.STRING(10),
-                allowNull:true,
-            },
-            video:{
-                type:Sequelize.INTEGER,
-                allowNull:true,
-                defaultValue:0,
-            },
-            like_uid_list:{
-                type:Sequelize.INTEGER,
-                allowNull:true,
+            text:{
+                type:Sequelize.STRING,
+                allowNull:false,
             },
             participation_fee:{
-                type:Sequelize.BOOLEAN,
-                allowNull:false,
-                defaultValue:true,
-            },
-            participation_uid_list:{
-                type:Sequelize.BOOLEAN,
-                allowNull:false,
-                defaultValue:true,
-            },
-            paid_uid_list:{
                 type:Sequelize.INTEGER,
+                allowNull:false,
+                defaultValue:0,
+            },
+            title:{
+                type:Sequelize.STRING,
                 allowNull:true,
             },
-            comment_id_list:{
-                type:Sequelize.BOOLEAN,
-                allowNull:false,
-                defaultValue:true,
+            color:{
+                type:Sequelize.STRING,
+                allowNull:true,
             },
-            title:{
-                type:Sequelize.BOOLEAN,
-                allowNull:false,
-                defaultValue:true,
+            startDate:{
+                type:Sequelize.STRING,
+                allowNull:true,
             },
-            title:{
-                type:Sequelize.BOOLEAN,
-                allowNull:false,
-                defaultValue:true,
+            endDate:{
+                type:Sequelize.STRING,
+                allowNull:true,
             },
-            title:{
-                type:Sequelize.BOOLEAN,
-                allowNull:false,
-                defaultValue:true,
+            place:{
+                type:Sequelize.STRING,
+                allowNull:true,
             },
-            title:{
-                type:Sequelize.BOOLEAN,
-                allowNull:false,
-                defaultValue:true,
+            memo:{
+                type:Sequelize.STRING,
+                allowNull:true,
             },
-            title:{
-                type:Sequelize.BOOLEAN,
+            createdAt:{
+                type:Sequelize.STRING,
                 allowNull:false,
-                defaultValue:true,
+                defaultValue:formatDateTime(Date()),
             },
         },{
             sequelize,
@@ -102,10 +64,13 @@ module.exports = class Post extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Club.hasMany(db.Club_user,{foreignKey:'cid',sourceKey:'id'});
-        db.Club.hasMany(db.ApplicationForm,{foreignKey:'cid',sourceKey:'id'});
-        db.Club.hasMany(db.User_favorite_club,{foreignKey:'cid',sourceKey:'id'});
+        db.Post.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
+        db.Post.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
 
-        db.Club.belongsToMany(db.Hashtag,{through:'ClubHashtag',as:'hashtags'});
+        db.Post.hasMany(db.File,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'}); //banner, image, file, video
+        db.Post.hasMany(db.Post_participation_user,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'}); 
+        db.Post.hasMany(db.Post_paid_user,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'}); 
+        db.Post.hasMany(db.Comment,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
+        db.Post.hasMany(db.Like,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
     }
 };

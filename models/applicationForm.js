@@ -73,6 +73,6 @@ module.exports = class ApplicationForm extends Sequelize.Model{
     }
     static associate(db){
         db.ApplicationForm.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.ApplicationForm.belongsTo(db.Club,{foreignKey:'cid',targetKey:'id'});
+        db.ApplicationForm.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
     }
 };
