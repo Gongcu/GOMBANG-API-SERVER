@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+const Sequelize=require('sequelize')
 const User = require('../models/user');
 const Post = require('../models/post');
 const Comment = require('../models/comment')
@@ -27,6 +28,25 @@ const uploader = multer({
     }),
     limits: {fileSize: 5*1024*1024},
 });
+//POSTMAN:이벤트 게시글 조회@
+router.get('/event',async(req,res,next)=>{
+    try{
+        const post = await Post.findAll({
+            where:{isEvent:true},
+            include:[{
+                model:Like,attributes:['uid'],
+            },{
+                model:Comment,attributes:['uid'],
+            },{
+                model:File, attributes:['name','type'],
+            }],
+        });
+        res.send(post);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 
 //POSTMAN:특정 동아리의 게시글 조회@
 router.get('/:club_id',async(req,res,next)=>{
@@ -34,19 +54,57 @@ router.get('/:club_id',async(req,res,next)=>{
         const post = await Post.findAll({
             where:{club_id:req.params.club_id},
             include:[{
+                model:Like,attributes:['uid'],
+            },{
+                model:Comment,attributes:['uid'],
+            },{
+                model:File, attributes:['name','type'],
+            }],
+        });
+        res.send(post);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+//POSTMAN:특정 게시글에 대한 자세한 조회@
+router.get('/detail/:post_id',async(req,res,next)=>{
+    try{
+        const post = await Post.findOne({
+            where:{id:req.params.post_id},
+            include:[{
                 model:File,
+                attributes:['name','type']
             },{
                 model:Like,
+                attributes: {exclude:['id','pid']},
                 include:[{
                     model:User,
                     attributes:['name','image']
                 }]
             },{
-                model:Comment,//모델안에 중첩해서 include가능:https://velog.io/@rjsdnql123/Solo-Project-3-Sequelize-%EC%97%AC%EB%9F%AC-%EB%AA%A8%EB%8D%B8-include%ED%95%98%EA%B8%B0
+                model:Comment,
+                attributes: {exclude:['id','pid']},
+                include:[{
+                    model:User,
+                    attributes:['name','image']
+                }]
             },{
                 model:post_paid_user,
+                attributes: {exclude:['id','pid']},
+                include:[{
+                    model:User,
+                    attributes:['name']
+                }]
             },{
                 model:Post_participation_user,
+                attributes: {exclude:['id','pid']},
+                include:[{
+                    model:User,
+                    attributes:['name']
+                }]
             }]
         });
         res.send(post);
@@ -55,6 +113,7 @@ router.get('/:club_id',async(req,res,next)=>{
         next(err);
     }
 });
+
 
 //POSTMAN: 특정 게시글의 댓글 조회@
 router.get('/comment/:post_id',async(req,res,next)=>{
@@ -166,64 +225,67 @@ router.post('/comment/:post_id',async(req,res,next)=>{
     }
 });
 
-/*
-//바꾸고 싶은 내용 외에 다른 수정정보도 넣어야함. 코드 수정할 지 고민..
-//1. 유저가 수정 클릭.
-//2. 기존의 모든 정보가 수정 페이지에 업로드
-//3. 그 정보 전체다 보내기. (사실상 _id만 안바뀌고 새로운 post 한거임)
-//이미지가 수정되었을 경우..
+
+//POSTMAN: 게시글 수정@
 router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     try{
-        const prevPost = await Post.findOne({_id:req.params.id});
-        fileDeleter(prevPost);//이거 맨 마지막으로 옮기는게 좋을듯 수정 완료 되고 삭제하게
+        //(글 수정 -> 파일 DB 삭제 후 추가)->성공 시 스토리지의 이전 게시글 파일 삭제 
+        const post = await Post.update({
+            uid: req.body.uid,
+            club_id: req.body.club_id,
+            isNotice:req.body.isNotice,
+            isEvent:req.body.isEvent,
+            text: req.body.text,
+            participation_fee: req.body.participation_fee,
+            title: req.body.title,
+            color: req.body.color,
+            startDate: req.body.startDate,
+            endDate: req.body.endDate,
+            place: req.body.place,
+            memo: req.body.memo
+        },{
+            where:{id:req.params.id}
+        });
+        const prevFiles = await File.findAll({pid:req.params.id})
+        await File.destroy({
+            where:{pid:req.params.id}
+        }).then(async(files)=>{
+            console.log(files);
+            if(req.body.isEvent===true){
+                if(typeof req.files['banner']=='undefined'){
+                    res.send("banner required")
+                }else{
+                    await File.create({pid:req.params.id,type:"banner",name:req.files['banner'][0].filename})
+                }
+            }
+            if(typeof req.files['file']!='undefined'){
+                for(var i=0; i<req.files['file'].length; i++)
+                    await File.create({pid:req.params.id,type:"file",name:req.files['file'][i].filename})
+            }
+            if(typeof req.files['image']!='undefined'){
+                for(var i=0; i<req.files['image'].length; i++)
+                    await File.create({pid:req.params.id,type:"image",name:req.files['image'][i].filename})
+            }
+            if(typeof req.files['video']!='undefined'){
+                for(var i=0; i<req.files['video'].length; i++)
+                    await File.create({pid:req.params.id,type:"video",name:req.files['video'][i].filename})
+            }
+        }).then((result)=>{
+            console.log(result);
+            for(var i=0; i<prevFiles.length; i++){
+                fs.unlink(appDir + '/upload/' + prevFiles[i].name, (err) => {
+                    console.log(err);
+                });
+            }
+        })
+        
 
-        const body = JSON.parse(req.body.json)
-        var banner;
-        var file=new Array(), image=new Array(), video=new Array();
-
-        if(typeof req.files['banner']!='undefined'){
-            banner=req.files['banner'][0].filename;
-        }else{
-            res.send('Banner is required')
-        }
-
-        if(typeof req.files['file']!='undefined'){
-            for(var i=0; i<req.files['file'].length; i++)
-                file.push(req.files['file'][i].filename);
-        }
-        if(typeof req.files['image']!='undefined'){
-            for(var i=0; i<req.files['image'].length; i++)
-                image.push(req.files['image'][i].filename);
-        }
-        if(typeof req.files['video']!='undefined'){
-            for(var i=0; i<req.files['video'].length; i++)
-                video.push(req.files['video'][i].filename);
-        }
-
-
-        //$set 내부에 정의된 값들은 존재하지 않는다면 null이나 empty로 초기화됨에 유의
-        const post = await Post.updateOne({_id:req.params.id},{$set:{
-            isNotice:body.isNotice,
-            text: body.text,
-            image: image,
-            file: file,
-            video: video,
-            participation_fee: body.participation_fee,
-            title: body.title,
-            color: body.color,
-            start_day: body.start_day,
-            end_day: body.end_day,
-            place: body.place,
-            memo: body.memo
-        }});
-
-        res.send(formatWriteResult(post))
-
+        res.send(updateRow(post))
     }catch(err){
         console.error(err);
         next(err);
     }
-});*/
+});
 
 //POSTMAN: 댓글 수정@
 router.patch('/comment/:comment_id',async(req,res,next)=>{

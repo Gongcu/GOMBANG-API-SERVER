@@ -72,5 +72,7 @@ module.exports = class Post extends Sequelize.Model{
         db.Post.hasMany(db.Post_paid_user,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'}); 
         db.Post.hasMany(db.Comment,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
         db.Post.hasMany(db.Like,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
+
+        db.Post.hasMany(db.Portfolio,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
     }
 };

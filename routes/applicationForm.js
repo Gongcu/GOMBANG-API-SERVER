@@ -30,7 +30,7 @@ router.get('/:club_id/:uid',async(req,res,next)=>{
     try{
         const applicationform = await ApplicationForm.findOne({
             where:{uid:req.params.uid,club_id:req.params.club_id}
-        })//.populate('post_id_list');
+        })
         res.send(applicationform);
     }catch(err){
         console.error(err);
@@ -40,7 +40,9 @@ router.get('/:club_id/:uid',async(req,res,next)=>{
 
 //POSTMAN: 신청서 작성@
 router.post('/:club_id', async (req, res, next) => {
+    let transaction;
     try {
+        transaction = await ApplicationForm.sequelize.transaction();
         var itemCheck = await ApplicationForm.findOne({
             where: { uid: req.body.uid, club_id: req.params.club_id }
         });
@@ -65,9 +67,10 @@ router.post('/:club_id', async (req, res, next) => {
             residence: req.body.residence,
             experience: req.body.experience
         });
-
+        await transaction.commit()
         res.send(applicationform);
     } catch (err) {
+        await transaction.rollback()
         console.error(err);
         next(err);
     }
@@ -75,10 +78,13 @@ router.post('/:club_id', async (req, res, next) => {
 
 //POSTMAN: 신청서 승인@
 router.patch('/approve/:af_id',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await ApplicationForm.sequelize.transaction()
         const applicationForm = await ApplicationForm.findOne({
             where:{id:req.params.af_id}
         });
+        if(applicationForm===null) res.send("There is no application form with af_id:"+req.params.af_id)
         await ApplicationForm.update({
             isApproved:true
             },{
@@ -89,11 +95,13 @@ router.patch('/approve/:af_id',async(req,res,next)=>{
             club_id:applicationForm.club_id,
             nickname:applicationForm.club_id,
         });
+        await transaction.commit()
         if(result)
             res.send(true)
         else
             res.send(false) 
     }catch(err){
+        await transaction.rollback()
         console.error(err);
         next(err);
     }

@@ -9,7 +9,8 @@ module.exports = class Club extends Sequelize.Model{
             },
             image:{
                 type:Sequelize.STRING(100),
-                allowNull:true,
+                allowNull:false,
+                defaultValue:"",
             },
             campus:{
                 type:Sequelize.STRING(10),
@@ -73,6 +74,7 @@ module.exports = class Club extends Sequelize.Model{
         db.Club.hasMany(db.User_favorite_club,{foreignKey:'club_id',sourceKey:'id'});
         db.Club.hasMany(db.Question,{foreignKey:'club_id',sourceKey:'id'});
         db.Club.hasMany(db.Post,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.belongsToMany(db.Hashtag,{through:'ClubHashtag',as:'hashtags'});
+        db.Club.hasMany(db.Chatroom,{foreignKey:'club_id',sourceKey:'id'});
+        db.Club.hasMany(db.Club_hashtag,{foreignKey:'club_id',sourceKey:'id'});
     }
 };

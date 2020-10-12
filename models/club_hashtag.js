@@ -1,25 +1,22 @@
 const Sequelize = require('sequelize');
 
-module.exports = class Hashtag extends Sequelize.Model{
+module.exports = class Club_hashtag extends Sequelize.Model{
     static init(sequelize){
         return super.init({
-            hashtag:{
-                type:Sequelize.STRING(30),
-                allowNull:false,
-            }
         },{
             sequelize,
             timestamps:false,
             underscored:false,
-            modelName:'Hashtag',
-            tableName:'hashtags',
+            modelName:'Club_hashtag',
+            tableName:'club_hashtag',
             paranoid:false,
             charset:'utf8',
             collate:'utf8_general_ci',
         });
     }
     static associate(db){
-        db.Hashtag.hasMany(db.Club_hashtag,{foreignKey:'hid',sourceKey:'id'});
+        db.Club_hashtag.belongsTo(db.Hashtag,{foreignKey:'hid',targetKey:'id'});
+        db.Club_hashtag.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
     }
 };
 

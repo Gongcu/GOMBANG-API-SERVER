@@ -18,7 +18,7 @@ module.exports = class User extends Sequelize.Model{
             },
             image:{
                 type:Sequelize.STRING(100),
-                allowNull:true,
+                allowNull:false,
                 defaultValue:"",
             },
             email:{
@@ -71,14 +71,12 @@ module.exports = class User extends Sequelize.Model{
         db.User.hasMany(db.Like,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.Post_paid_user,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.Post_participation_user,{foreignKey:'uid',sourceKey:'id'});
+
+        db.User.hasMany(db.Portfolio_folder,{foreignKey:'uid',sourceKey:'id'});
+
+        db.User.hasMany(db.Chat,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Chatroom_user,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Chatroom_con_user,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Chat_unread_user,{foreignKey:'uid',sourceKey:'id'});
     }
 };
-
-
-/*
-alarm_club_list:[//동아리 설정
-    {
-        type:ObjectId,
-        ref:"Club"
-    }
-]*/
