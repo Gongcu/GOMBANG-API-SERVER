@@ -150,7 +150,11 @@ router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
             },{
                 where:{id:req.params.uid}
             });
-            res.send(updateRow(user));
+            if(updateRow(user)){
+                res.send(req.file.filename)
+            }else{
+                res.send(updateRow(user));
+            }
         }else{
             res.send(false);
         }
@@ -212,7 +216,7 @@ router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
             await User_favorite_club.update({
                 itemOrder:i
             },{
-                where:{uid:req.params.uid,club_id:list[i]}
+                where:{uid:req.params.uid,club_id:list[i]},transaction:transaction
             })
         }
         await transaction.commit()
@@ -222,7 +226,8 @@ router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
             res.send(updateRow(0))
         }
     }catch(err){
-        await transaction.rollback()
+        if(transaction)
+            await transaction.rollback()
         console.error(err);
         next(err);
     }

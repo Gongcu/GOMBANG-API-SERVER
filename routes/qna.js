@@ -62,13 +62,14 @@ router.post('/answer',async(req,res,next)=>{
 //POSTMAN:질문수정
 router.patch('/question/:id',async(req,res,next)=>{
     try{
-        const result = await Question.update({
-            question:req.body.question
-        },{
-            where:{id:req.params.id, aid:null}
-        })
-        console.log(result);
-        res.send(updateRow(result))
+        const question = await Question.findOne({where:{id:req.params.id, aid:null}})
+        if(question){
+            question.question=req.body.question;
+            await question.save();
+            res.send(question);
+        }else{
+            res.send(updateRow(0))
+        }
     }catch(err){
         console.error(err);
         next(err);
@@ -78,12 +79,14 @@ router.patch('/question/:id',async(req,res,next)=>{
 //POSTMAN:질문 수정
 router.patch('/answer/:id',async(req,res,next)=>{
     try{
-        const answer = await Answer.update({
-            answer:req.body.answer
-        },{
-            where:{id:req.params.id}
-        });
-        res.send(updateRow(answer));
+        const answer = await Answer.findOne({where:{id:req.params.id}});
+        if(answer){
+            answer.answer=req.body.answer;
+            await answer.save();
+            res.send(answer);
+        }else{
+            res.send(updateRow(0))
+        }
     }catch(err){
         console.error(err);
         next(err);

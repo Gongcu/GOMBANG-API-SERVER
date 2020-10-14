@@ -17,6 +17,7 @@ const portfolio = require('./routes/portfolio')
 const chat = require('./routes/chat')
 const chatroom = require('./routes/chatroom')
 const applicationForm = require('./routes/applicationForm')
+const search = require('./routes/search')
 
  // 소켓 start
 const http = require('http');
@@ -43,6 +44,7 @@ app.use('/portfolio', portfolio);
 app.use('/chat', chat);
 app.use('/chatroom', chatroom);
 app.use('/applicationform', applicationForm);
+app.use('/search', search);
 
 server.listen(3000, () => { //3000번 포트
     console.log("the server is running")

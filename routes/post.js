@@ -31,17 +31,12 @@ const uploader = multer({
 //POSTMAN:이벤트 게시글 조회@
 router.get('/event',async(req,res,next)=>{
     try{
-        const post = await Post.findAll({
-            where:{isEvent:true},
-            include:[{
-                model:Like,attributes:['uid'],
-            },{
-                model:Comment,attributes:['uid'],
-            },{
-                model:File, attributes:['name','type'],
-            }],
-        });
-        res.send(post);
+        const post = await Post.sequelize.query(`SELECT p.id, u.id uid,u.name , u.image, p.isNotice, p.isEvent, p.text, p.participation_fee, `+
+            `p.title, p.color, p.startDate, p.endDate, p.place, p.memo, p.createdAt,COALESCE(l.count,0) as like_count,COALESCE(c.count,0) as comment_count ` +
+            `FROM posts p left join (select pid, count(*) count from likes group by pid) l on p.id=l.pid left join (select pid, count(*) count from comments group by pid) c on p.id=c.pid join users u on p.uid = u.id ` +
+            `WHERE p.isEvent=true`
+        )   
+        res.send(post[0]);
     }catch(err){
         console.error(err);
         next(err);
@@ -51,17 +46,12 @@ router.get('/event',async(req,res,next)=>{
 //POSTMAN:특정 동아리의 게시글 조회@
 router.get('/:club_id',async(req,res,next)=>{
     try{
-        const post = await Post.findAll({
-            where:{club_id:req.params.club_id},
-            include:[{
-                model:Like,attributes:['uid'],
-            },{
-                model:Comment,attributes:['uid'],
-            },{
-                model:File, attributes:['name','type'],
-            }],
-        });
-        res.send(post);
+        const post = await Post.sequelize.query(`SELECT p.id, u.id uid,u.name , u.image, p.isNotice, p.isEvent, p.text, p.participation_fee, `+
+            `p.title, p.color, p.startDate, p.endDate, p.place, p.memo, p.createdAt,COALESCE(l.count,0) as like_count,COALESCE(c.count,0) as comment_count ` +
+            `FROM posts p left join (select pid, count(*) count from likes group by pid) l on p.id=l.pid left join (select pid, count(*) count from comments group by pid) c on p.id=c.pid join users u on p.uid = u.id ` +
+            `WHERE p.club_id=${req.params.club_id}`
+        )   
+        res.send(post[0]);
     }catch(err){
         console.error(err);
         next(err);
@@ -72,41 +62,37 @@ router.get('/:club_id',async(req,res,next)=>{
 //POSTMAN:특정 게시글에 대한 자세한 조회@
 router.get('/detail/:post_id',async(req,res,next)=>{
     try{
-        const post = await Post.findOne({
+        var post = await Post.findOne({
             where:{id:req.params.post_id},
-            include:[{
-                model:File,
-                attributes:['name','type']
-            },{
-                model:Like,
-                attributes: {exclude:['id','pid']},
-                include:[{
-                    model:User,
-                    attributes:['name','image']
-                }]
-            },{
-                model:Comment,
-                attributes: {exclude:['id','pid']},
-                include:[{
-                    model:User,
-                    attributes:['name','image']
-                }]
-            },{
-                model:post_paid_user,
-                attributes: {exclude:['id','pid']},
-                include:[{
-                    model:User,
-                    attributes:['name']
-                }]
-            },{
-                model:Post_participation_user,
-                attributes: {exclude:['id','pid']},
-                include:[{
-                    model:User,
-                    attributes:['name']
-                }]
-            }]
+            raw:true
         });
+        var files = await File.sequelize.query(
+            `SELECT type, name `+
+            `FROM files WHERE pid=${req.params.post_id}`
+        )
+        var likes = await Like.sequelize.query(
+            `SELECT u.id, u.name, u.image `+
+            `FROM likes l join users u on l.uid=u.id WHERE l.pid=${req.params.post_id}`
+        )
+        var comments = await Comment.sequelize.query(
+            `SELECT u.id, u.name, u.image, c.comment, c.createdAt `+
+            `FROM comments c join users u on c.uid=u.id WHERE c.pid=${req.params.post_id} order by c.createdAt asc`
+        )
+   
+        var post_paid_users = await Like.sequelize.query(
+            `SELECT u.id, u.name, u.image `+
+            `FROM post_paid_user p join users u on p.uid=u.id WHERE p.pid=${req.params.post_id}`
+        )
+        var post_participation_users = await Comment.sequelize.query(
+            `SELECT u.id, u.name, u.image `+
+            `FROM post_participation_user p join users u on p.uid=u.id WHERE p.pid=${req.params.post_id}`
+        )
+        post.Files=files[0];
+        post.likes=likes[0];
+        post.comments=comments[0];
+        post.post_paid_users=post_paid_users[0];
+        post.post_participation_users=post_participation_users[0];
+
         res.send(post);
     }catch(err){
         console.error(err);
@@ -133,7 +119,9 @@ router.get('/comment/:post_id',async(req,res,next)=>{
 
 //POSTMAN: 동아리 게시글 작성@
 router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await Post.sequelize.transaction();
         const post = await Post.create({
             uid: req.body.uid,
             club_id: req.body.club_id,
@@ -146,23 +134,30 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
             endDate: req.body.endDate,
             place: req.body.place,
             memo: req.body.memo
-        });
+        },{transaction:transaction});
 
         if(typeof req.files['file']!='undefined'){
             for(var i=0; i<req.files['file'].length; i++)
-                await File.create({pid:post.id,type:"file",name:req.files['file'][i].filename})
+                await File.create({pid:post.id,type:"file",name:req.files['file'][i].filename},{transaction:transaction})
         }
         if(typeof req.files['image']!='undefined'){
             for(var i=0; i<req.files['image'].length; i++)
-                await File.create({pid:post.id,type:"image",name:req.files['image'][i].filename})
+                await File.create({pid:post.id,type:"image",name:req.files['image'][i].filename},{transaction:transaction})
         }
         if(typeof req.files['video']!='undefined'){
             for(var i=0; i<req.files['video'].length; i++)
-                await File.create({pid:post.id,type:"video",name:req.files['video'][i].filename})
+                await File.create({pid:post.id,type:"video",name:req.files['video'][i].filename},{transaction:transaction})
         }
-
-        res.send(post);
+        const result = await Post.findOne({
+            where:{id:post.id},
+            include:[{
+                model:File,
+                attributes:['name','type']
+            }],transaction:transaction});
+        await transaction.commit();
+        res.send(result);
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -170,11 +165,12 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
 
 //POSTMAN: 이벤트 글 작성@
 router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
+    let transaction;
     try{
         if(typeof req.files['banner']=='undefined'){
             res.send("banner required")
         }
-
+        transaction = await Post.sequelize.transaction();
         const post = await Post.create({
             uid: req.body.uid,
             club_id: req.body.club_id,
@@ -189,22 +185,29 @@ router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image
             place: req.body.place,
             memo: req.body.memo
         });
-        await File.create({pid:post.id,type:"banner",name:req.files['banner'][0].filename})
+        await File.create({pid:post.id,type:"banner",name:req.files['banner'][0].filename},{transaction:transaction})
         if(typeof req.files['file']!='undefined'){
             for(var i=0; i<req.files['file'].length; i++)
-                await File.create({pid:post.id,type:"file",name:req.files['file'][i].filename})
+                await File.create({pid:post.id,type:"file",name:req.files['file'][i].filename},{transaction:transaction})
         }
         if(typeof req.files['image']!='undefined'){
             for(var i=0; i<req.files['image'].length; i++)
-                await File.create({pid:post.id,type:"image",name:req.files['image'][i].filename})
+                await File.create({pid:post.id,type:"image",name:req.files['image'][i].filename},{transaction:transaction})
         }
         if(typeof req.files['video']!='undefined'){
             for(var i=0; i<req.files['video'].length; i++)
-                await File.create({pid:post.id,type:"video",name:req.files['video'][i].filename})
+                await File.create({pid:post.id,type:"video",name:req.files['video'][i].filename},{transaction:transaction})
         }
-
-        res.send(post);
+        const result = await Post.findOne({
+            where:{id:post.id},
+            include:[{
+                model:File,
+                attributes:['name','type']
+            }],transaction:transaction});
+        await transaction.commit();
+        res.send(result);
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -228,9 +231,11 @@ router.post('/comment/:post_id',async(req,res,next)=>{
 
 //POSTMAN: 게시글 수정@
 router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
+    let transaction;
     try{
         //(글 수정 -> 파일 DB 삭제 후 추가)->성공 시 스토리지의 이전 게시글 파일 삭제 
-        const post = await Post.update({
+        transaction = await Post.sequelize.transaction();
+        await Post.update({
             uid: req.body.uid,
             club_id: req.body.club_id,
             isNotice:req.body.isNotice,
@@ -244,44 +249,47 @@ router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'
             place: req.body.place,
             memo: req.body.memo
         },{
-            where:{id:req.params.id}
+            where:{id:req.params.id},transaction:transaction
         });
-        const prevFiles = await File.findAll({pid:req.params.id})
+        const prevFiles = await File.findAll({where:{pid:req.params.id},transaction:transaction})
         await File.destroy({
-            where:{pid:req.params.id}
+            where:{pid:req.params.id},transaction:transaction
         }).then(async(files)=>{
-            console.log(files);
             if(req.body.isEvent===true){
                 if(typeof req.files['banner']=='undefined'){
                     res.send("banner required")
                 }else{
-                    await File.create({pid:req.params.id,type:"banner",name:req.files['banner'][0].filename})
+                    await File.create({pid:req.params.id,type:"banner",name:req.files['banner'][0].filename},{transaction:transaction})
                 }
             }
             if(typeof req.files['file']!='undefined'){
                 for(var i=0; i<req.files['file'].length; i++)
-                    await File.create({pid:req.params.id,type:"file",name:req.files['file'][i].filename})
+                    await File.create({pid:req.params.id,type:"file",name:req.files['file'][i].filename},{transaction:transaction})
             }
             if(typeof req.files['image']!='undefined'){
                 for(var i=0; i<req.files['image'].length; i++)
-                    await File.create({pid:req.params.id,type:"image",name:req.files['image'][i].filename})
+                    await File.create({pid:req.params.id,type:"image",name:req.files['image'][i].filename},{transaction:transaction})
             }
             if(typeof req.files['video']!='undefined'){
                 for(var i=0; i<req.files['video'].length; i++)
-                    await File.create({pid:req.params.id,type:"video",name:req.files['video'][i].filename})
-            }
-        }).then((result)=>{
-            console.log(result);
-            for(var i=0; i<prevFiles.length; i++){
-                fs.unlink(appDir + '/upload/' + prevFiles[i].name, (err) => {
-                    console.log(err);
-                });
+                    await File.create({pid:req.params.id,type:"video",name:req.files['video'][i].filename},{transaction:transaction})
             }
         })
-        
-
-        res.send(updateRow(post))
+        const result = await Post.findOne({
+            where:{id:req.params.id},
+            include:[{
+                model:File,
+                attributes:['name','type']
+            }],transaction:transaction});
+        await transaction.commit();
+        for(var i=0; i<prevFiles.length; i++){
+            fs.unlink(appDir + '/upload/' + prevFiles[i].name, (err) => {
+                console.log(err);
+            });
+        }
+        res.send(result);
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -290,12 +298,14 @@ router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'
 //POSTMAN: 댓글 수정@
 router.patch('/comment/:comment_id',async(req,res,next)=>{
     try{
-        const comment = await Comment.update({
-            comment:req.body.comment
-        },{
-            where:{id:req.params.comment_id}
-        })
-        res.send(updateRow(comment));
+        const comment = await Comment.findOne({where:{id:req.params.comment_id}});
+        if(comment){
+            comment.comment = req.body.comment;
+            await comment.save();
+            res.send(comment);
+        }else{
+            res.send(updateRow(0))
+        }
     }catch(err){
         console.error(err);
         next(err);

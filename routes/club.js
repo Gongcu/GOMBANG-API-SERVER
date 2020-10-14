@@ -8,7 +8,7 @@ const Club_hashtag= require('../models/club_hashtag');
 const Hashtag= require('../models/hashtag');
 
 //CHATTING
-const {Chat,Chatroom_user,Chatroom,Chat_unread_user} = require('../models/')
+const {Chat,Chatroom_user,Chatroom,Chat_unread_user, Answer} = require('../models/')
 
 const multer = require('multer');
 const path = require('path');
@@ -32,16 +32,16 @@ const router = express.Router();
 //POSTMAN
 router.get('/',async(req,res,next)=>{
     try{
-        const club = await Club.findAll({
-            include:[{
-                model:Club_hashtag,
-                attributes:{exclude:['hid','club_id']},
-                include:[{
-                    model:Hashtag,
-                    attributes:['id', 'hashtag']
-                }]
-            }]
+        var club = await Club.findAll({
+            raw:true
         });
+        for(var i=0; i<club.length; i++){
+            var hashtags = await Club_hashtag.sequelize.query(
+                `SELECT ch.hid, h.hashtag `+
+                `FROM club_hashtag ch join hashtags h on ch.hid=h.id WHERE ch.club_id=${club[i].id}`
+            )
+            club[i].hashtags=hashtags[0];
+        }
         res.send(club);
     }catch(err){
         console.error(err);
@@ -52,17 +52,15 @@ router.get('/',async(req,res,next)=>{
 //POSTMAN
 router.get('/:club_id',async(req,res,next)=>{
     try{
-        const club = await Club.findAll({
-            where:{id:req.params.club_id},
-            include:[{
-                model:Club_hashtag,
-                attributes:{exclude:['hid','club_id']},
-                include:[{
-                    model:Hashtag,
-                    attributes:['id', 'hashtag']
-                }]
-            }]
+        var club = await Club.findOne({
+            raw:true
         });
+
+        var hashtags = await Club_hashtag.sequelize.query(
+                `SELECT ch.hid, h.hashtag `+
+                `FROM club_hashtag ch join hashtags h on ch.hid=h.id WHERE ch.club_id=${req.params.club_id}`
+        )
+        club.hashtags=hashtags[0];
         res.send(club);
     }catch(err){
         console.error(err);
@@ -213,7 +211,7 @@ router.patch('/profile/:club_id',uploader.single('image'),async(req,res,next)=>{
                 nickname_rule: req.body.nickname_rule,
                 membership_fee:req.body.membership_fee,
             },{
-                where:{id:req.params.club_id},transaction
+                where:{id:req.params.club_id},transaction:transaction
             });
         }else{
             club = await Club.update({
@@ -221,7 +219,7 @@ router.patch('/profile/:club_id',uploader.single('image'),async(req,res,next)=>{
                 nickname_rule: req.body.nickname_rule,
                 membership_fee:req.body.membership_fee,
             },{
-                where:{id:req.params.club_id},transaction
+                where:{id:req.params.club_id},transaction:transaction
             });
         }
         await transaction.commit();

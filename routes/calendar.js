@@ -40,17 +40,19 @@ router.post('/',async(req,res,next)=>{
 router.patch('/:id',async(req,res,next)=>{
     try{
         //전체 정보 다시 전달 받기(uid 제외 모두 업데이트)
-        const calendar = await Calendar.update({
-                title:req.body.title,
-                color:req.body.color,
-                startDate:req.body.startDate,
-                endDate:req.body.endDate,
-                place:req.body.place,
-                memo:req.body.memo
-            },{
-                where:{id:req.params.id}
-            });
-        res.send(updateRow(calendar));
+        const calendar = await Calendar.findOne({where:{id:req.params.id}})
+        if(calendar){
+            calendar.title=req.body.title;
+            calendar.color=req.body.color;
+            calendar.startDate=req.body.startDate;
+            calendar.endDate=req.body.endDate;
+            calendar.place = req.body.place;
+            calendar.memo=req.body.memo
+            await calendar.save();
+            res.send(calendar);
+        }else{
+            res.send(updateRow(0))
+        }
     }catch(err){
         console.error(err);
         next(err);
