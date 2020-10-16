@@ -85,10 +85,11 @@ router.patch('/folder/:fid',async(req,res,next)=>{
 
 //POSTMAN 폴더 즐겨찾기
 router.patch('/folder/favorite/:fid',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await Portfolio_folder.sequelize.transaction();
         const prevState = await Portfolio_folder.findOne({where:{id:req.params.fid}});
         var result;
-        console.log(prevState.isFavorite)
         if(prevState.isFavorite){
             result = await Portfolio_folder.update({
                 isFavorite:false,
@@ -100,12 +101,14 @@ router.patch('/folder/favorite/:fid',async(req,res,next)=>{
                 favorite_click_time:formatDateTime(Date())
             },{where:{id:req.params.fid}})
         }
+        await transaction.commit();
         if(updateRow(result).result){
             res.send(!prevState.isFavorite)
         }else{
             res.send(updateRow(result))
         }
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }

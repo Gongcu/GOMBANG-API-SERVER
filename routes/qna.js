@@ -43,17 +43,21 @@ router.post('/question',async(req,res,next)=>{
 
 //POSTMAN, 답글 작성시 답글 생성후 질문 id에 해당하는 로우의 answer 값을 answer의 id로 업데이트.
 router.post('/answer',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await Answer.sequelize.transaction();
         const answer = await Answer.create({
             answer: req.body.answer,
         });
-        const question = await Question.update({
+        await Question.update({
             aid:answer.id
         }, {
             where:{id:req.body.question_id}
         })
+        await transaction.commit();
         res.send(answer);
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -93,9 +97,11 @@ router.patch('/answer/:id',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 질문 삭제, 답변이 존재할 경우 답변도 삭제, 답변 없는거 삭제 테스트 해보기
+//POSTMAN: 질문 삭제, 답변이 존재할 경우 답변도 삭제@
 router.delete('/question/:id',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await Question.sequelize.transaction();
         const question = await Question.findOne({
             where:{id:req.params.id}
         });
@@ -105,8 +111,10 @@ router.delete('/question/:id',async(req,res,next)=>{
         const result = await Answer.destroy({
             where:{id:question.aid}
         });
+        await transaction.commit();
         res.send(deleteRow(result));
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -114,7 +122,9 @@ router.delete('/question/:id',async(req,res,next)=>{
 
 //POSTMAN: 답변 삭제
 router.delete('/answer/:id',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await Question.sequelize.transaction();
         const answer = await Answer.findOne({
             where:{id:req.params.id}
         });
@@ -126,8 +136,10 @@ router.delete('/answer/:id',async(req,res,next)=>{
         },{
             where:{aid:answer.id}
         })
+        await transaction.commit();
         res.send(deleteRow(result))
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }

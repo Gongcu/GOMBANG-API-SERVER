@@ -70,7 +70,7 @@ router.post('/:club_id', async (req, res, next) => {
         await transaction.commit()
         res.send(applicationform);
     } catch (err) {
-        await transaction.rollback()
+        if(transaction) await transaction.rollback()
         console.error(err);
         next(err);
     }
@@ -101,7 +101,7 @@ router.patch('/approve/:af_id',async(req,res,next)=>{
         else
             res.send(false) 
     }catch(err){
-        await transaction.rollback()
+        if(transaction) await transaction.rollback()
         console.error(err);
         next(err);
     }
