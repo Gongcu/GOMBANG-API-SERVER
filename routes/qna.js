@@ -1,8 +1,6 @@
 const express = require('express');
-
 const Question = require('../models/question');
 const Answer = require('../models/answer');
-
 const updateRow = require('../etc/updateRow');
 const deleteRow = require('../etc/deleteRow');
 const router = express.Router();

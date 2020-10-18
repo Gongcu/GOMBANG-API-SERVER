@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-
-const Sequelize=require('sequelize')
 const User = require('../models/user');
 const Post = require('../models/post');
 const Comment = require('../models/comment')
@@ -104,13 +102,11 @@ router.get('/detail/:post_id',async(req,res,next)=>{
 //POSTMAN: 특정 게시글의 댓글 조회@
 router.get('/comment/:post_id',async(req,res,next)=>{
     try{
-        const comments = await Comment.findAll({
-            where:{pid:req.params.post_id},
-            include:[{
-                model:User
-            }]
-        })
-        res.send(comments);
+        const comments = await Comment.sequelize.query(
+            `SELECT u.id, u.name, u.image, c.comment, c.createdAt `+
+            `FROM comments c join users u on c.uid=u.id WHERE c.pid=${req.params.post_id} order by c.createdAt asc`
+        )
+        res.send(comments[0]);
     }catch(err){
         console.error(err);
         next(err);

@@ -57,7 +57,8 @@ router.post('/', async (req, res, next) => {
         await transaction.commit();
         req.app.get('io').sockets.in(req.body.chatroomId).emit('new message', chat.id);
     } catch (err) {
-        await transaction.rollback();
+        if(transaction)
+            await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -111,7 +112,7 @@ router.delete('/read/:chatId/:uid', async (req, res, next) => {
     try {
         await Chat_unread_user.destroy({
             where: {chatId:req.params.chatId, uid:req.params.uid}
-        }).then(async(result)=>{
+        }).then(async(result)=>{//읽은 뒤 then 변화된 메시지를 보내야 됨
             //채팅 보고 있는 유저들 count 수 갱신해야됨!! socket/ 서버에서는 입장했다는 이벤트를 유저에게 전송 유저는 이벤트 리스터 생성
             const msg = await Chat.sequelize.query(`SELECT c.id, c.message, c.createdAt, c.uid, u.token, u.name, u.image,COALESCE(cur.count,0) as count ` +
             `FROM chats c left join (select chatId,count(id) as count from chat_unread_user group by chatId) cur on c.id=cur.chatId join users u on c.uid=u.id ` +

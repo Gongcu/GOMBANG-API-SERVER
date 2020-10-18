@@ -2,10 +2,7 @@ const express = require("express");
 const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
-const connect = require('./schemas');
-
 const {sequelize} = require('./models');
-
 const user = require('./routes/user');
 const club = require('./routes/club');
 const image = require('./routes/image')
@@ -25,8 +22,6 @@ const server = http.createServer(app);
 const io = require('./io')(server)
  // 소켓 end
  
-connect();
-
 app.set('io',io);
 app.use(express.json({limit:'40mb'}));
 

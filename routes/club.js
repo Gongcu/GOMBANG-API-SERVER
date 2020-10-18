@@ -3,13 +3,8 @@ const deleteRow = require('../etc/deleteRow.js');
 const updateRow = require('../etc/updateRow.js');
 const Club = require('../models/club');
 const Club_user = require('../models/club_user');
-const User = require('../models/user');
 const Club_hashtag= require('../models/club_hashtag');
 const Hashtag= require('../models/hashtag');
-
-//CHATTING
-const {Chat,Chatroom_user,Chatroom,Chat_unread_user, Answer} = require('../models/')
-
 const multer = require('multer');
 const path = require('path');
 const uploader = multer({
@@ -29,7 +24,7 @@ var appDir = path.dirname(require.main.filename);
 
 const router = express.Router();
 
-//POSTMAN
+//POSTMAN 검색탭의 동아리 리스트@
 router.get('/',async(req,res,next)=>{
     try{
         var club = await Club.findAll({
@@ -49,7 +44,7 @@ router.get('/',async(req,res,next)=>{
     }
 });
 
-//POSTMAN
+//POSTMAN 특정 동아리 상세 정보@
 router.get('/:club_id',async(req,res,next)=>{
     try{
         var club = await Club.findOne({
@@ -80,24 +75,6 @@ router.get('/:club_id/:uid/mypost/',async(req,res,next)=>{
         next(err);
     }
 });
-
-//POSTMAN 닉네임 사용가능 여부@
-router.get('/:club_id/nickname/:nickname',async(req,res,next)=>{
-    try{
-        var result = await Club_user.findOne({
-            where:{club_id:req.params.club_id,nickname:req.params.nickname}
-        });
-        if(result){
-            res.send(false);
-        }else{
-            res.send(true);
-        }
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
-
 
 
 //POSTMAN: 동아리 회원 리스트@
@@ -234,19 +211,10 @@ router.patch('/profile/:club_id',uploader.single('image'),async(req,res,next)=>{
 //POSTMAN: 공개/비공개 전환@
 router.patch('/exposure/:club_id',async(req,res,next)=>{
     try{
-        const getClub = await Club.findOne({id:req.params.club_id})
-        const bool = !getClub.exposure
-        const club = await Club.update({
-                exposure:bool
-            },
-            {
-                where: {id:req.params.club_id}
-            });
-        if(updateRow(club).result==true){
-            res.send(bool)
-        }else{
-            res.send(updateRow(club))
-        }
+        const club = await Club.findOne({id:req.params.club_id})
+        club.exposure = !(club.exposure);
+        await club.save();
+        res.send(club.exposure);
     }catch(err){
         console.error(err);
         next(err);
@@ -256,18 +224,10 @@ router.patch('/exposure/:club_id',async(req,res,next)=>{
 //POSTMAN: 모집 상태 전환@
 router.patch('/recruitment/:club_id',async(req,res,next)=>{
     try{
-        const getClub = await Club.findOne({id:req.params.club_id})
-        const bool = !getClub.recruitment
-        const club = await Club.update({
-                recruitment:bool
-            },{
-                where: {id:req.params.club_id}
-            });
-        if(updateRow(club).result==true){
-            res.send(bool)
-        }else{
-            res.send(updateRow(club))
-        }
+        const club = await Club.findOne({id:req.params.club_id})
+        club.recruitment = !(club.recruitment);
+        await club.save();
+        res.send(club.recruitment);
     }catch(err){
         console.error(err);
         next(err);

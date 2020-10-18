@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
-
-
 const Club_user = require('../models/club_user');
 const ApplicationForm = require('../models/applicationForm');
-
 const deleteRow = require('../etc/deleteRow');
 
 

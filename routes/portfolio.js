@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-
 const Post = require('../models/post');
 const Portfolio = require('../models/portfolio')
 const Portfolio_folder = require('../models/portfolio_folder');
-const updateRow = require('../etc/updateRow.js');
 const deleteRow = require('../etc/deleteRow.js');
 const formatDateTime = require('../etc/formatDateTime.js');
 
@@ -12,7 +10,7 @@ const formatDateTime = require('../etc/formatDateTime.js');
 router.get('/:uid',async(req,res,next)=>{
     try{
         const folder = await Portfolio_folder.findAll({
-            where:{uid:req.params.uid}
+            where:{uid:req.params.uid},
         })
         res.send(folder);
     }catch(err){
@@ -83,32 +81,18 @@ router.patch('/folder/:fid',async(req,res,next)=>{
     }
 });
 
-//POSTMAN 폴더 즐겨찾기
+//POSTMAN 폴더 즐겨찾기 추가/해제@ (시간)
 router.patch('/folder/favorite/:fid',async(req,res,next)=>{
-    let transaction;
     try{
-        transaction = await Portfolio_folder.sequelize.transaction();
-        const prevState = await Portfolio_folder.findOne({where:{id:req.params.fid}});
-        var result;
-        if(prevState.isFavorite){
-            result = await Portfolio_folder.update({
-                isFavorite:false,
-                favorite_click_time:null
-            },{where:{id:req.params.fid}})
-        }else{
-            result = await Portfolio_folder.update({
-                isFavorite:true,
-                favorite_click_time:formatDateTime(Date())
-            },{where:{id:req.params.fid}})
-        }
-        await transaction.commit();
-        if(updateRow(result).result){
-            res.send(!prevState.isFavorite)
-        }else{
-            res.send(updateRow(result))
-        }
+        const prevFolder = await Portfolio_folder.findOne({where:{id:req.params.fid}});
+        prevFolder.isFavorite = !(prevFolder.isFavorite);
+        if(prevFolder.isFavorite)
+            prevFolder.favorite_click_time = formatDateTime(Date());
+        else
+            prevFolder.favorite_click_time = null;
+        await prevFolder.save();
+        res.send(prevFolder.isFavorite);
     }catch(err){
-        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
