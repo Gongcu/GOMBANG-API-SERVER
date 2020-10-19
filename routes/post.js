@@ -5,12 +5,11 @@ const Post = require('../models/post');
 const Comment = require('../models/comment')
 const Like = require('../models/like');
 const File = require('../models/file')
-const post_paid_user = require('../models/post_paid_user')
 const Post_participation_user = require('../models/post_participation_user');
-
 const multer = require('multer');
 const updateRow = require('../etc/updateRow.js');
 const deleteRow = require('../etc/deleteRow.js');
+const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
 var appDir = path.dirname(require.main.filename);
@@ -77,18 +76,13 @@ router.get('/detail/:post_id',async(req,res,next)=>{
             `FROM comments c join users u on c.uid=u.id WHERE c.pid=${req.params.post_id} order by c.createdAt asc`
         )
    
-        var post_paid_users = await Like.sequelize.query(
-            `SELECT u.id, u.name, u.image `+
-            `FROM post_paid_user p join users u on p.uid=u.id WHERE p.pid=${req.params.post_id}`
-        )
         var post_participation_users = await Comment.sequelize.query(
-            `SELECT u.id, u.name, u.image `+
+            `SELECT u.id, u.name, u.image, p.payment `+
             `FROM post_participation_user p join users u on p.uid=u.id WHERE p.pid=${req.params.post_id}`
         )
         post.Files=files[0];
         post.likes=likes[0];
         post.comments=comments[0];
-        post.post_paid_users=post_paid_users[0];
         post.post_participation_users=post_participation_users[0];
 
         res.send(post);
@@ -113,6 +107,51 @@ router.get('/comment/:post_id',async(req,res,next)=>{
     }
 });
 
+//POSTMAN:참가자 엑셀로 내보내기@
+router.get('/participation/export/:post_id',async(req,res,next)=>{
+    try{
+        const post = await Post.findOne({where:{id:req.params.post_id}});
+        const post_participation_users = await Comment.sequelize.query(
+            `SELECT u.id, u.name, u.image, p.payment `+
+            `FROM post_participation_user p join users u on p.uid=u.id WHERE p.pid=${req.params.post_id}`
+        )
+        const filename = post.id+"_"+post.title + " 참가 목록.xlsx";
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet(`참가자 명단`);
+        sheet.columns = [
+            {header:'이름',key:'name'},
+            {header:'납부여부',key:'payment'}
+        ]
+        var list = post_participation_users[0];
+        var i, paid_user_count=0;
+        for( i=0; i<list.length; i++){
+            if(list[i].payment){
+                sheet.addRow({name:list[i].name,payment:"O"});
+                paid_user_count++;
+            }
+            else
+                sheet.addRow({name:list[i].name,payment:"X"});
+        }
+        sheet.addRow({name:'참가비',payment:post.participation_fee})
+        sheet.addRow({name:'참가자 수',payment:list.length})
+        sheet.addRow({name:'납부자 수',payment:paid_user_count})
+
+        sheet.getRow(1).font = {bold:true} //첫 행: 컬럼 제목
+        sheet.getRow(i+2).font = {bold:true} //참가비
+        sheet.getRow(i+3).font = {bold:true} //참가자 수
+        sheet.getRow(i+4).font = {bold:true} //납부자 수
+
+        workbook.xlsx.writeFile(appDir+'/excel/'+filename).then(_=>{
+            res.send(filename);
+        }).catch((error)=>{
+            console.log(error);
+        })
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 //POSTMAN: 동아리 게시글 작성@
 router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     let transaction;
@@ -129,7 +168,7 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
             startDate: req.body.startDate,
             endDate: req.body.endDate,
             place: req.body.place,
-            memo: req.body.memo
+            memo: req.body.memo,
         },{transaction:transaction});
 
         if(typeof req.files['file']!='undefined'){
@@ -179,7 +218,7 @@ router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image
             startDate: req.body.startDate,
             endDate: req.body.endDate,
             place: req.body.place,
-            memo: req.body.memo
+            memo: req.body.memo,
         });
         await File.create({pid:post.id,type:"banner",name:req.files['banner'][0].filename},{transaction:transaction})
         if(typeof req.files['file']!='undefined'){
@@ -232,8 +271,6 @@ router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'
         //(글 수정 -> 파일 DB 삭제 후 추가)->성공 시 스토리지의 이전 게시글 파일 삭제 
         transaction = await Post.sequelize.transaction();
         await Post.update({
-            uid: req.body.uid,
-            club_id: req.body.club_id,
             isNotice:req.body.isNotice,
             isEvent:req.body.isEvent,
             text: req.body.text,
@@ -243,7 +280,7 @@ router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'
             startDate: req.body.startDate,
             endDate: req.body.endDate,
             place: req.body.place,
-            memo: req.body.memo
+            memo: req.body.memo,
         },{
             where:{id:req.params.id},transaction:transaction
         });
@@ -253,6 +290,7 @@ router.patch('/:id',uploader.fields([{name:'banner'},{name:'file'},{name:'image'
         }).then(async(files)=>{
             if(req.body.isEvent===true){
                 if(typeof req.files['banner']=='undefined'){
+                    await transaction.rollback();//이벤트에서 배너 없을 경우 롤백
                     res.send("banner required")
                 }else{
                     await File.create({pid:req.params.id,type:"banner",name:req.files['banner'][0].filename},{transaction:transaction})
@@ -353,18 +391,15 @@ router.patch('/participation/:post_id',async(req,res,next)=>{
 //POSTMAN: 특정 유저 금액 지불 클릭@
 router.patch('/paid/:post_id',async(req,res,next)=>{
     try{
-        await post_paid_user.findOrCreate({
+        const user = await Post_participation_user.findOne({
             where: { pid: req.params.post_id, uid: req.body.uid }
-        }).then(async (result) => {
-            if(result[1]){
-                res.send("on")
-            }else{
-                await post_paid_user.destroy({
-                    where: { pid: req.params.post_id, uid: req.body.uid }
-                })
-                res.send("off")
-            }
-        })
+        });
+        user.payment = !user.payment;
+        await user.save();
+        if(user.payment)
+            res.send("on");
+        else
+            res.send("off");
     }catch(err){
         console.error(err);
         next(err);
@@ -372,7 +407,7 @@ router.patch('/paid/:post_id',async(req,res,next)=>{
 });
 
 
-//POSTMAN: 게시글 삭제@ onDelete:CASCADE, like, paid,.. 등에 해당 pid 갖는 로우 모두 삭제됨
+//POSTMAN: 게시글 삭제@ onDelete:CASCADE, like,.. 등에 해당 pid 갖는 로우 모두 삭제됨
 router.delete('/:id',async(req,res,next)=>{
     try{
         const files = await File.findAll({

@@ -3,6 +3,7 @@ config/database.js
 config/mysql_session.js
 config/mysql_session.js
 config/serviceAccountKey.json
+excel
 upload
 node_modules
 .env

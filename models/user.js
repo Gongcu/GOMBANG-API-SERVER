@@ -69,7 +69,6 @@ module.exports = class User extends Sequelize.Model{
         db.User.hasMany(db.Post,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.Comment,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.Like,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Post_paid_user,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.Post_participation_user,{foreignKey:'uid',sourceKey:'id'});
 
         db.User.hasMany(db.Portfolio_folder,{foreignKey:'uid',sourceKey:'id'});
