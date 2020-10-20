@@ -63,6 +63,26 @@ router.get('/:club_id',async(req,res,next)=>{
     }
 });
 
+//POSTMAN 캠퍼스별 동아리 리스트@
+router.get('/campus/:campus',async(req,res,next)=>{
+    try{
+        var club = await Club.findAll({
+            where:{campus:req.params.campus},
+            raw:true
+        });
+        for(var i=0; i<club.length; i++){
+            var hashtags = await Club_hashtag.sequelize.query(
+                `SELECT ch.hid, h.hashtag `+
+                `FROM club_hashtag ch join hashtags h on ch.hid=h.id WHERE ch.club_id=${club[i].id}`
+            )
+            club[i].hashtags=hashtags[0];
+        }
+        res.send(club);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 //POSTMAN: 동아리 내 작성글@
 router.get('/:club_id/:uid/mypost/',async(req,res,next)=>{
     try{
@@ -208,14 +228,16 @@ router.patch('/profile/:club_id',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 공개/비공개 전환@
-router.patch('/exposure/:club_id',async(req,res,next)=>{
-    try{
-        const club = await Club.findOne({id:req.params.club_id})
-        club.exposure = !(club.exposure);
-        await club.save();
-        res.send(club.exposure);
-    }catch(err){
+//POSTMAN: 닉네임 변경@
+router.patch('/:club_id/nickname/', async (req, res, next) => {
+    try {
+        const result = await Club_user.update({
+            nickname: req.body.nickname
+        }, {
+            where: { club_id: req.params.club_id, uid: req.body.uid }
+        })
+        res.send(updateRow(result));
+    } catch (err) {
         console.error(err);
         next(err);
     }
@@ -234,22 +256,31 @@ router.patch('/recruitment/:club_id',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 닉네임 변경@
-router.patch('/:club_id/nickname/', async (req, res, next) => {
-    try {
-        const result = await Club_user.update({
-            nickname: req.body.nickname
-        }, {
-            where: { club_id: req.params.club_id, uid: req.body.uid }
-        })
-        res.send(updateRow(result));
-    } catch (err) {
+
+//POSTMAN: 피드 공개/비공개 전환@
+router.patch('/exposure/feed/:club_id',async(req,res,next)=>{
+    try{
+        const club = await Club.findOne({id:req.params.club_id})
+        club.feed_exposure = !(club.feed_exposure);
+        await club.save();
+        res.send(club.feed_exposure);
+    }catch(err){
         console.error(err);
         next(err);
     }
 });
-
-
+//POSTMAN: 공지사항 공개/비공개 전환@
+router.patch('/exposure/notice/:club_id',async(req,res,next)=>{
+    try{
+        const club = await Club.findOne({id:req.params.club_id})
+        club.notice_exposure = !(club.notice_exposure);
+        await club.save();
+        res.send(club.notice_exposure);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 
 //POSTMAN:매니저로 변경@
 router.post('/manager/:club_id',async(req,res,next)=>{

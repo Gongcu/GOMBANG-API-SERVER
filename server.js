@@ -26,7 +26,7 @@ app.set('io',io);
 app.use(express.json({limit:'40mb'}));
 
 //테이블 내용 변경시 force:true
-sequelize.sync({force:false}).then(()=>{console.log("DB CONNECTED")}).catch((err)=>{console.log(err)});
+sequelize.sync({force:true}).then(()=>{console.log("DB CONNECTED")}).catch((err)=>{console.log(err)});
 
 app.use('/user', user);
 app.use('/club', club);

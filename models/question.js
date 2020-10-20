@@ -12,7 +12,7 @@ module.exports = class Question extends Sequelize.Model{
                 type:Sequelize.STRING(20),
                 allowNull:false,
                 defaultValue:formatDate(Date())
-            }
+            },
         },{
             sequelize,
             timestamps:false,

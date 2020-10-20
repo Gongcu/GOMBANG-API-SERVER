@@ -52,7 +52,12 @@ module.exports = class Club extends Sequelize.Model{
                 allowNull:false,
                 defaultValue:true,
             },
-            exposure:{
+            feed_exposure:{
+                type:Sequelize.BOOLEAN,
+                allowNull:false,
+                defaultValue:true,
+            },
+            notice_exposure:{
                 type:Sequelize.BOOLEAN,
                 allowNull:false,
                 defaultValue:true,

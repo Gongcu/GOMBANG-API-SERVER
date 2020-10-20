@@ -28,6 +28,31 @@ router.get('/:club_id',async(req,res,next)=>{
     }
 });
 
+//해당 동아리의 모든 채팅방 리스트 추출
+router.get('/user/:uid',async(req,res,next)=>{
+    try{
+        const chatroom = await Chatroom.sequelize.query(`
+            select c.name as clubName, cr.id as chatroomId, cr.name as chatroomName  
+            from chatroom_users cu join chatrooms cr on cr.id=cu.chatroomId join clubs c on cr.club_id=c.id 
+            where uid=${req.params.uid};`
+        )
+        var list = chatroom[0];
+        const obj = new Object();
+        for(var i=0; i<list.length; i++){
+            var clubName = list[i].clubName
+            if(typeof obj[clubName] == 'undefined'){
+                obj[clubName] =[list[i]]
+            }else{
+                obj[clubName].push(list[i]);
+            }
+        }
+        res.send(obj);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 //채팅방 입장할 경우. 읽음표시, 채팅반환, body-uid,params -chatroomid
 router.get('/enter/:chatroomId/:uid', async (req, res, next) => {
     let transaction;

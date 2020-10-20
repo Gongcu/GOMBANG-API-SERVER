@@ -3,6 +3,7 @@ const Question = require('../models/question');
 const Answer = require('../models/answer');
 const updateRow = require('../etc/updateRow');
 const deleteRow = require('../etc/deleteRow');
+const nodemailer = require('nodemailer');
 const router = express.Router();
 
 
@@ -22,6 +23,22 @@ router.get('/:club_id',async(req,res,next)=>{
     }
 });
 
+//POSTMAN: APP으로 보낸 나의 문의사항 
+router.get('/app/:uid',async(req,res,next)=>{
+    try{
+        const question = await Question.findAll({
+            where:{uid:req.params.uid, club_id:null},
+            include:[{
+                model:Answer,
+            }]
+        })
+        res.send(question);
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 //POSTMAN: 질문 작성@
 router.post('/question',async(req,res,next)=>{
     try{
@@ -29,7 +46,7 @@ router.post('/question',async(req,res,next)=>{
                 club_id: req.body.club_id,
                 uid: req.body.uid,
                 question: req.body.question,
-                //reatedAt은 질문 생성시 default 처리
+                //createdAt은 질문 생성시 default 처리
         });
         res.send(question)
     }catch(err){
@@ -38,6 +55,47 @@ router.post('/question',async(req,res,next)=>{
     }
 });
 
+//POSTMAN: 앱으로 질문 작성@
+router.post('/app/question', async (req, res, next) => {
+    try {
+        const question = await Question.create({
+            uid: req.body.uid,
+            question: req.body.question,
+            //createdAt은 질문 생성시 default 처리
+        });
+        const emailAddress =  'gombangapp@gmail.com'
+ 
+        let transporter = nodemailer.createTransport({
+            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.NODEMAILER_USER,
+                pass: process.env.NODEMAILER_PASS,
+            },
+        });
+
+        let mailOptions = await transporter.sendMail({
+            from: `곰방`,
+            to: emailAddress,
+            subject: '새로운 문의사항이 등록되었습니다',
+            text: '새로운 문의사항이 등록되었습니다',
+        });
+
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            }
+            console.log("Finish sending email : " + info.response);
+            transporter.close()
+        });
+        res.send(question)
+    } catch (err) {
+        console.error(err);
+        next(err);
+    }
+});
 
 //POSTMAN, 답글 작성시 답글 생성후 질문 id에 해당하는 로우의 answer 값을 answer의 id로 업데이트.
 router.post('/answer',async(req,res,next)=>{

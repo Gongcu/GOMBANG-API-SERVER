@@ -1,9 +1,13 @@
 const Sequelize = require('sequelize');
-const formatDateTime = require('../etc/formatDateTime');
 
 module.exports = class Chatroom_user extends Sequelize.Model{
     static init(sequelize){
         return super.init({
+            alarm:{
+                type:Sequelize.BOOLEAN,
+                allowNull:false,
+                defaultValue:true,
+            },
         },{
             sequelize,
             timestamps:false,

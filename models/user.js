@@ -49,6 +49,11 @@ module.exports = class User extends Sequelize.Model{
                 type:Sequelize.STRING(10),
                 allowNull:true,
             },
+            push_alarm:{
+                type:Sequelize.BOOLEAN,
+                allowNull:false,
+                defaultValue:true
+            },
         },{
             sequelize,
             timestamps:false,
