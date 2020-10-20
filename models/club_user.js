@@ -8,10 +8,10 @@ module.exports = class Club_User extends Sequelize.Model{
                 allowNull:false,
                 defaultValue:"",
             },
-            manager:{
-                type:Sequelize.BOOLEAN,
+            authority:{
+                type:Sequelize.STRING(5), //"회장,부회장,관리자,회원"
                 allowNull:false,
-                defaultValue:false,
+                defaultValue:"멤버",
             },
             alarm:{
                 type:Sequelize.BOOLEAN,

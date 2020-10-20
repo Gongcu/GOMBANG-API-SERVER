@@ -101,7 +101,7 @@ router.get('/:club_id/:uid/mypost/',async(req,res,next)=>{
 router.get('/:club_id/member',async(req,res,next)=>{
     try{
         const member = await Club_user.sequelize.query(
-            `SELECT c.uid, u.name, u.image, u.student_number, c.nickname `+
+            `SELECT c.uid, u.name, u.image, u.student_number, c.nickname, c.authority `+
             `FROM club_user c join users u on c.uid=u.id WHERE c.club_id=${req.params.club_id}`
         )
         res.send(member[0]);
@@ -111,12 +111,12 @@ router.get('/:club_id/member',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 동아리 매니저 리스트@
+//POSTMAN: 동아리 관리자 리스트@
 router.get('/:club_id/manager',async(req,res,next)=>{
     try{
         const manager = await Club_user.sequelize.query(
-            `SELECT c.uid, u.name, u.image, u.student_number, c.nickname `+
-            `FROM club_user c join users u on c.uid=u.id WHERE c.club_id=${req.params.club_id} AND c.manager=true `
+            `SELECT c.uid, u.name, u.image, u.student_number, c.nickname, c.authority `+
+            `FROM club_user c join users u on c.uid=u.id WHERE c.club_id=${req.params.club_id} AND c.authority NOT LIKE '멤버' `
         )
          res.send(manager[0]);
     }catch(err){
@@ -156,7 +156,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
         await Club_user.create({
             uid: req.body.president_uid,
             club_id: club.id,
-            manager: true,
+            authority: '회장',
             nickname: req.body.name + ' 회장'
         },{transaction})
 
@@ -282,11 +282,26 @@ router.patch('/exposure/notice/:club_id',async(req,res,next)=>{
     }
 });
 
+//POSTMAN:부회장으로 변경@
+router.post('/vicepresident/:club_id',async(req,res,next)=>{
+    try{
+        const result = await Club_user.update({
+            authority:'부회장',
+        },{
+            where:{club_id:req.params.club_id,uid:req.body.uid}
+        });
+        res.send(updateRow(result));
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
 //POSTMAN:매니저로 변경@
 router.post('/manager/:club_id',async(req,res,next)=>{
     try{
         const result = await Club_user.update({
-            manager:true,
+            authority:'관리자',
         },{
             where:{club_id:req.params.club_id,uid:req.body.uid}
         });
@@ -339,11 +354,11 @@ router.delete('/member/:club_id/:uid',async(req,res,next)=>{
 });
 
 
-//POSTMAN: 매니저 해임 -> 일반멤버 변경@
+//POSTMAN: 매니저,부회장,회장 해임 -> 일반멤버 변경@
 router.delete('/manager/:club_id/:uid',async(req,res,next)=>{
     try{
         const result = await Club_user.update({
-            manager:false
+            authority:'멤버'
             }
             ,{
                 where:{club_id:req.params.club_id,uid:req.params.uid}
