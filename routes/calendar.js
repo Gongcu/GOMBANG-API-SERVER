@@ -74,16 +74,3 @@ router.delete('/:id',async(req,res,next)=>{
 
 module.exports = router;
 
-/*
-{   //PUT 예시 데이터
-    "_id": “FAUSHDHFIUA”
-    "uid": "DFAJ12J3NVI",
-    "title": "야식 행사",
-    "color": "RED",
-    "startDate": "2020/09/01 00:00",
-    "endDate":"2020/09/30 00:00",
-    "place": "소프트웨어 ICT관",
-    "memo":"학생증 지참",
-}
-*/
-

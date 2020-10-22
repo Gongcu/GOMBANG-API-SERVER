@@ -28,7 +28,7 @@ router.get('/:club_id',async(req,res,next)=>{
     }
 });
 
-//해당 동아리의 모든 채팅방 리스트 추출
+//해당 동아리에서 유저가 참여한 모든 채팅방 리스트 추출
 router.get('/user/:uid',async(req,res,next)=>{
     try{
         const chatroom = await Chatroom.sequelize.query(`
@@ -92,22 +92,20 @@ router.delete('/leave/:chatroomId/:uid',async(req,res,next)=>{
     }
 });
 
-/*
-//새로운 메시지에 대한 점멸등 --> 이거 코딩 잘못됨 각 채팅방 별로 점멸등 킬지 말지 리스트 주는게 좋을듯
+
+//새로운 메시지에 대한 점멸등과 새로운 메시지 개수
 router.get('flasher/:club_id/:uid',async(req,res,next)=>{
     try{
-        const chat = await Chat.find({club_id:req.params.club_id}).sort({_id:1}).limit(1);
-        const unread_uid_list = chat[0].unread_uid_list;
-        const exist=unread_uid_list.indexOf(req.params.uid);
-        if(exist===-1) //읽지 않는 사람이 아니다. == 읽은사람. 점멸등 필요없음
-            res.send(false);
-        else
-            res.send(true);
+        const result = await Chat_unread_user.sequelize.query(`select chatroomId, count(id) as count `+
+        `from chat_unread_user cur join chatrooms c on cur.chatroomId=c.id `
+        `where cur.uid=${req.params.uid} and  c.club_id=${req.params.club_id}`
+        `group by cur.chatroomId;`)
+        res.send(result);
     }catch(err){
         console.error(err);
         next(err);
     }
-});*/
+});
 
 //POSTMAN: 채팅방 생성@
 router.post('/',async(req,res,next)=>{

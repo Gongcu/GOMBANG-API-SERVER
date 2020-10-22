@@ -41,6 +41,6 @@ app.use('/chatroom', chatroom);
 app.use('/applicationform', applicationForm);
 app.use('/search', search);
 
-server.listen(3000, () => { //3000번 포트
+server.listen(3000, () => { 
     console.log("the server is running")
 });
