@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user')
 const Chat = require('../models/chat')
+const File = require('../models/file')
 const Chatroom_user = require('../models/chatroom_user')
 const Chatroom_con_user = require('../models/chatroom_con_user')
 const Chatroom = require('../models/chatroom')
@@ -52,7 +53,30 @@ router.get('/user/:uid',async(req,res,next)=>{
         next(err);
     }
 });
-
+//채팅방 슬라이드 버튼 - 사진첩, 사진이름 반환 (테스트 필요)
+router.get('/gallery/:chatroomId', async (req, res, next) => {
+    try {
+        const images = await File.sequelize.query('SELECT f.name FROM '+
+        'chatrooms cr join chats c on cr.id=c.chatroomId join on files f c.id=f.chatId '+
+        `where cr.id=${req.params.chatroomId}`);
+        res.send(images[0]);
+    } catch (err) {
+        console.error(err);
+        next(err);
+    }
+});
+//채팅방 슬라이드 버튼 - 참여중인 유저 목록, 유저 목록 반환 (테스트 필요)
+router.get('/user/:chatroomId', async (req, res, next) => {
+    try {
+        const users = await Chatroom_user.sequelize.query('SELECT f.name FROM '+
+        'chatroom_users cu join users u on cu.uid=u.id '+
+        `where cu.chatroomId=${req.params.chatroomId}`);
+        res.send(users[0]);
+    } catch (err) {
+        console.error(err);
+        next(err);
+    }
+});
 //채팅방 입장할 경우. 읽음표시, 채팅반환, body-uid,params -chatroomid
 router.get('/enter/:chatroomId/:uid', async (req, res, next) => {
     let transaction;
@@ -79,21 +103,10 @@ router.get('/enter/:chatroomId/:uid', async (req, res, next) => {
         next(err);
     }
 });
-//채팅방 나갈 경우-연결 유저에서 제거
-router.delete('/leave/:chatroomId/:uid',async(req,res,next)=>{
-    try{
-        const result = await Chatroom_con_user.destroy({
-            where:{chatroomId:req.params.chatroomId,uid:req.params.uid}
-        })
-        res.send(deleteRow(result));
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
 
 
-//새로운 메시지에 대한 점멸등과 새로운 메시지 개수
+
+//새로운 메시지에 대한 점멸등과 새로운 메시지 개수 (테스트 필요)
 router.get('flasher/:club_id/:uid',async(req,res,next)=>{
     try{
         const result = await Chat_unread_user.sequelize.query(`select chatroomId, count(id) as count `+
@@ -152,8 +165,51 @@ router.post('/invite/:chatroomId',async(req,res,next)=>{
     }
 });
 
+//POSTMAN: 채팅방 이름 변경, body: name 필요 - 테스트 필요
+router.patch('/name/:chatroomId',async(req,res,next)=>{
+    try{
+        const chatroom = await Chatroom.findOne({
+            where:{id:req.params.chatroomId}
+        });
+        chatroom.name = req.body.name;
+        await chatroom.save();
+        res.send(chatroom);
+    }catch(err){
+
+        console.error(err);
+        next(err);
+    }
+});
 
 
+//POSTMAN: 채팅방 알림 상태 변경, body: uid 필요 - 테스트 필요
+router.patch('/alarm/:chatroomId',async(req,res,next)=>{
+    try{
+        const user = await Chatroom_user.findOne({
+            where:{chatroomId:req.params.chatroomId, uid:req.body.uid}
+        });
+        user.alarm = !user.alarm;
+        await user.save();
+        res.send(user.alarm);
+    }catch(err){
+
+        console.error(err);
+        next(err);
+    }
+});
+
+//채팅방 나갈 경우-연결 유저에서 제거
+router.delete('/leave/:chatroomId/:uid',async(req,res,next)=>{
+    try{
+        const result = await Chatroom_con_user.destroy({
+            where:{chatroomId:req.params.chatroomId,uid:req.params.uid}
+        })
+        res.send(deleteRow(result));
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 
 //POSTMAN: 채팅방 삭제(leave와 다름)@
 router.delete('/delete/:chatroomId/:uid',async(req,res,next)=>{

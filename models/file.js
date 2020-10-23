@@ -1,5 +1,4 @@
 const Sequelize = require('sequelize');
-const formatDateTime = require('../etc/formatDateTime');
 
 module.exports = class File extends Sequelize.Model{
     static init(sequelize){
@@ -26,5 +25,6 @@ module.exports = class File extends Sequelize.Model{
     }
     static associate(db){
         db.File.belongsTo(db.Post,{foreignKey:'pid',targetKey:'id'});
+        db.File.belongsTo(db.Chat,{foreignKey:'chatId',targetKey:'id'});
     }
 };

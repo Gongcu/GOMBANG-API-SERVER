@@ -7,6 +7,7 @@ module.exports = class Chat extends Sequelize.Model{
             message:{
                 type:Sequelize.STRING,
                 allowNull:false,
+                defaultValue:""
             },
             createdAt:{
                 type:Sequelize.STRING(20),
@@ -28,5 +29,6 @@ module.exports = class Chat extends Sequelize.Model{
         db.Chat.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
         db.Chat.belongsTo(db.Chatroom,{foreignKey:'chatroomId',targetKey:'id'});
         db.Chat.hasMany(db.Chat_unread_user,{foreignKey:'chatId',sourceKey:'id'});
+        db.Chat.hasMany(db.File,{foreignKey:'chatId',sourceKey:'id'});
     }
 };
