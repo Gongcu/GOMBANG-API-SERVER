@@ -65,10 +65,10 @@ router.get('/gallery/:chatroomId', async (req, res, next) => {
         next(err);
     }
 });
-//채팅방 슬라이드 버튼 - 참여중인 유저 목록, 유저 목록 반환 (테스트 필요)
-router.get('/user/:chatroomId', async (req, res, next) => {
+//채팅방 슬라이드 버튼 - 참여중인 유저 목록, 유저 목록 반환@
+router.get('/users/:chatroomId', async (req, res, next) => {
     try {
-        const users = await Chatroom_user.sequelize.query('SELECT f.name FROM '+
+        const users = await Chatroom_user.sequelize.query('SELECT u.name, u.image FROM '+
         'chatroom_users cu join users u on cu.uid=u.id '+
         `where cu.chatroomId=${req.params.chatroomId}`);
         res.send(users[0]);
@@ -165,7 +165,7 @@ router.post('/invite/:chatroomId',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 채팅방 이름 변경, body: name 필요 - 테스트 필요
+//POSTMAN: 채팅방 이름 변경, body: name 필요@
 router.patch('/name/:chatroomId',async(req,res,next)=>{
     try{
         const chatroom = await Chatroom.findOne({
@@ -182,7 +182,7 @@ router.patch('/name/:chatroomId',async(req,res,next)=>{
 });
 
 
-//POSTMAN: 채팅방 알림 상태 변경, body: uid 필요 - 테스트 필요
+//POSTMAN: 채팅방 알림 상태 변경, body: uid 필요@
 router.patch('/alarm/:chatroomId',async(req,res,next)=>{
     try{
         const user = await Chatroom_user.findOne({

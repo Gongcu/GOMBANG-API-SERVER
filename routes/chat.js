@@ -37,7 +37,15 @@ router.get('/:chatroomId',async(req,res,next)=>{
         next(err);
     }
 });
-
+/**
+ * 0. 클라이언트 채팅방 입장: 채팅 목록을 반환하고 DB에 해당 유저가 접속중임을 기록
+ * 1. 클라이언트: 채팅 전송
+ * 2. 서버측: 해당 채팅기반 데이터 생성하고 생성된 chatId와 함께 새로운 메시지가 생성되었다고 클라이언트에 알림
+ * 3. 클라이언트: 해당 이벤트를 수신하고, 해당 id에 해당하는 채팅을 읽겠다는 요청을함.
+ * 4. 서버측: 해당 채팅을 읽음 처리하고 count가 반영된 채팅을 반환
+ * 5. 클라이언트측: 응답으로 해당 채팅을 받고 뷰에 업데이트.
+ * 6. 클라이언트 채팅방 퇴장: DB에 해당 유저가 접속이 끝났음을 반영
+ */
 //POSTMAN: 채팅 보내기@
 router.post('/', async (req, res, next) => {
     let transaction;
@@ -54,8 +62,12 @@ router.post('/', async (req, res, next) => {
         )
         for (var i = 0; i < user[0].length; i++)
             await Chat_unread_user.create({ uid: user[0][i].uid, chatId: chat.id, chatroomId: req.body.chatroomId })
+        //여기서 아예 병렬 처리, user[0].length => count, 
+        const msg = await Chat.sequelize.query(`SELECT c.id, c.message, c.createdAt, c.uid, u.token, u.name, u.image,${user[0].length} as count ` +
+            `FROM chats c join users u on c.uid=u.id ` +
+            `WHERE c.id=${chat.id}`)
         await transaction.commit();
-        req.app.get('io').sockets.in(req.body.chatroomId).emit('new message', chat.id);
+        req.app.get('io').sockets.in(req.body.chatroomId).emit('new message', msg[0][0]);
     } catch (err) {
         if(transaction)
             await transaction.rollback();
@@ -107,33 +119,5 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
     }
 });
 */
-/**
- * 0. 클라이언트 채팅방 입장: 채팅 목록을 반환하고 DB에 해당 유저가 접속중임을 기록
- * 1. 클라이언트: 채팅 전송
- * 2. 서버측: 해당 채팅기반 데이터 생성하고 생성된 chatId와 함께 새로운 메시지가 생성되었다고 클라이언트에 알림
- * 3. 클라이언트: 해당 이벤트를 수신하고, 해당 id에 해당하는 채팅을 읽겠다는 요청을함.
- * 4. 서버측: 해당 채팅을 읽음 처리하고 count가 반영된 채팅을 반환
- * 5. 클라이언트측: 응답으로 해당 채팅을 받고 뷰에 업데이트.
- * 6. 클라이언트 채팅방 퇴장: DB에 해당 유저가 접속이 끝났음을 반영
- */
-//POSTMAN: 채팅 읽음처리(실시간 참여 시 사용) - chat_unread_user 삭제(채팅 읽음 처리)
-router.delete('/read/:chatId/:uid', async (req, res, next) => {
-    try {
-        await Chat_unread_user.destroy({
-            where: {chatId:req.params.chatId, uid:req.params.uid}
-        }).then(async(result)=>{//읽은 뒤 then 변화된 메시지를 보내야 됨
-            //채팅 보고 있는 유저들 count 수 갱신해야됨!! socket/ 서버에서는 입장했다는 이벤트를 유저에게 전송 유저는 이벤트 리스너 생성
-            const msg = await Chat.sequelize.query(`SELECT c.id, c.message, c.createdAt, c.uid, u.token, u.name, u.image,COALESCE(cur.count,0) as count ` +
-            `FROM chats c left join (select chatId,count(id) as count from chat_unread_user group by chatId) cur on c.id=cur.chatId join users u on c.uid=u.id ` +
-            `WHERE c.id=${req.params.chatId}`)
-            res.send(msg[0][0]);
-        }).catch((err)=>{
-            res.send(err);
-        })
-    } catch (err) {
-        console.error(err);
-        next(err);
-    }
-});
 
 module.exports = router;
