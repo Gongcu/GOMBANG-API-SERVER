@@ -82,5 +82,7 @@ module.exports = class User extends Sequelize.Model{
         db.User.hasMany(db.Chatroom_user,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.Chatroom_con_user,{foreignKey:'uid',sourceKey:'id'});
         db.User.hasMany(db.Chat_unread_user,{foreignKey:'uid',sourceKey:'id'});
+
+        db.User.hasMany(db.Alarm,{foreignKey:'uid',sourceKey:'id'});
     }
 };

@@ -15,6 +15,7 @@ const chat = require('./routes/chat')
 const chatroom = require('./routes/chatroom')
 const applicationForm = require('./routes/applicationForm')
 const search = require('./routes/search')
+const alarm = require('./routes/alarm')
 
  // 소켓 start
 const http = require('http');
@@ -40,6 +41,7 @@ app.use('/chat', chat);
 app.use('/chatroom', chatroom);
 app.use('/applicationform', applicationForm);
 app.use('/search', search);
+app.use('/alarm', alarm);
 
 server.listen(3000, () => { 
     console.log("the server is running")

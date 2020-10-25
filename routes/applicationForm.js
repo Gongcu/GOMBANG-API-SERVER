@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Club_user = require('../models/club_user');
+const Alarm = require('../models/alarm');
 const ApplicationForm = require('../models/applicationForm');
+const Sequelize = require('sequelize');
 const deleteRow = require('../etc/deleteRow');
-
+const { Club } = require('../models');
 
 //POSTMAN: 해당 동아리로 작성된 가입신청서 목록 조회@
 router.get('/:club_id',async(req,res,next)=>{
@@ -35,18 +37,18 @@ router.get('/:club_id/:uid',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 신청서 작성@
+//POSTMAN: 신청서 작성@ + PUSH
 router.post('/:club_id', async (req, res, next) => {
     let transaction;
     try {
         transaction = await ApplicationForm.sequelize.transaction();
         var itemCheck = await ApplicationForm.findOne({
-            where: { uid: req.body.uid, club_id: req.params.club_id }
+            where: { uid: req.body.uid, club_id: req.params.club_id },transaction:transaction
         });
         //기존 신청서가 존재할 경우 제거
         if (itemCheck !== null) {
             await ApplicationForm.destroy({
-                where: { id:itemCheck.id }
+                where: { id:itemCheck.id },transaction:transaction
             });
         }
         const applicationform = await ApplicationForm.create({
@@ -63,7 +65,19 @@ router.post('/:club_id', async (req, res, next) => {
             phone: req.body.phone,
             residence: req.body.residence,
             experience: req.body.experience
-        });
+        },{transaction:transaction});
+        const managers = await Club_user.findAll({
+            where:{club_id:req.body.club_id, authority:{[Sequelize.Op.not]:'멤버'}},
+            attributes:['uid']
+        })
+        for(var i=0; i<managers.length; i++){
+            await Alarm.create({
+                content:"새로운 가입 신청서가 작성되었습니다.",
+                club_id:applicationform.club_id,
+                form_id:applicationform.id,
+                uid:managers[i].uid
+            },{transaction:transaction});
+        }
         await transaction.commit()
         res.send(applicationform);
     } catch (err) {
@@ -73,25 +87,26 @@ router.post('/:club_id', async (req, res, next) => {
     }
 });
 
-//POSTMAN: 신청서 승인@
+//POSTMAN: 신청서 승인@ + PUSH
 router.patch('/approve/:af_id',async(req,res,next)=>{
     let transaction;
     try{
         transaction = await ApplicationForm.sequelize.transaction()
         const applicationForm = await ApplicationForm.findOne({
-            where:{id:req.params.af_id}
+            where:{id:req.params.af_id,isApproved:false},transaction:transaction
         });
-        if(applicationForm===null) res.send("There is no application form with af_id:"+req.params.af_id)
-        await ApplicationForm.update({
-            isApproved:true
-            },{
-            where:{id:req.params.af_id,isApproved:false}
-        });
+        applicationForm.isApproved = true;
+        await applicationForm.save({transaction:transaction});
         const result = await Club_user.create({
             uid:applicationForm.uid,
             club_id:applicationForm.club_id,
-            nickname:applicationForm.club_id,
-        });
+            nickname:applicationForm.nickname,
+        },{transaction:transaction});
+        await Alarm.create({
+            content:"동아리에 가입되었습니다.",
+            club_id:applicationForm.club_id,
+            uid:applicationForm.uid
+        },{transaction:transaction});
         await transaction.commit()
         if(result)
             res.send(true)
@@ -104,14 +119,24 @@ router.patch('/approve/:af_id',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 가입 신청서 삭제@
+//POSTMAN: 가입 신청서 삭제(거절)@ + PUSH
 router.delete('/:af_id',async(req,res,next)=>{
+    let transaction;
     try{
-        var result = await ApplicationForm.destroy({
+        transaction = await ApplicationForm.sequelize.transaction();
+        var deleteForm = await ApplicationForm.findOne({
             where:{id:req.params.af_id}
         });
-        res.send(deleteRow(result));
+        await Alarm.create({
+            content:"가입신청이 거부되었습니다.",
+            club_id:deleteForm.club_id,
+            uid:deleteForm.uid
+        },{transaction:transaction});
+        await deleteForm.destroy({transaction:transaction});
+        await transaction.commit()
+        res.send(deleteRow(1));
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }

@@ -74,5 +74,6 @@ module.exports = class ApplicationForm extends Sequelize.Model{
     static associate(db){
         db.ApplicationForm.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
         db.ApplicationForm.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
+        db.ApplicationForm.hasMany(db.Alarm,{foreignKey:'form_id',sourceKey:'id',onDelete: 'CASCADE'});
     }
 };

@@ -23,6 +23,9 @@ const Chatroom_con_user = require('./chatroom_con_user');
 const Hashtag= require('./hashtag');
 const Club_hashtag = require('./club_hashtag');
 
+const Alarm = require('./alarm');
+
+
 const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
@@ -53,6 +56,8 @@ db.Chatroom_user=Chatroom_user;
 db.Hashtag=Hashtag;
 db.Club_hashtag=Club_hashtag;
 db.Chatroom_con_user=Chatroom_con_user;
+db.Alarm=Alarm;
+
 
 //init
 User.init(sequelize);
@@ -77,6 +82,7 @@ Chatroom_user.init(sequelize);
 Hashtag.init(sequelize);
 Club_hashtag.init(sequelize);
 Chatroom_con_user.init(sequelize)
+Alarm.init(sequelize)
 
 //associate
 User.associate(db);
@@ -101,5 +107,6 @@ Chatroom_user.associate(db);
 Hashtag.associate(db);
 Club_hashtag.associate(db);
 Chatroom_con_user.associate(db);
+Alarm.associate(db);
 
 module.exports = db;

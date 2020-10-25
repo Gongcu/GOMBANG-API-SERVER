@@ -6,12 +6,15 @@ const Comment = require('../models/comment')
 const Like = require('../models/like');
 const File = require('../models/file')
 const Post_participation_user = require('../models/post_participation_user');
+const Alarm = require('../models/alarm');
 const multer = require('multer');
 const updateRow = require('../etc/updateRow.js');
 const deleteRow = require('../etc/deleteRow.js');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
+const Sequelize = require('sequelize');
+const Club_user = require('../models/club_user');
 var appDir = path.dirname(require.main.filename);
 const uploader = multer({
     storage: multer.diskStorage({
@@ -152,7 +155,7 @@ router.get('/participation/export/:post_id',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 동아리 게시글 작성@
+//POSTMAN: 동아리 게시글 작성@+PUSH
 router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     let transaction;
     try{
@@ -189,6 +192,19 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
                 model:File,
                 attributes:['name','type']
             }],transaction:transaction});
+        if(post.isNotice){
+            const users = await Club_user.findAll({
+                where:{uid:{[Sequelize.Op.not]:post.uid}}
+            });
+            for(var i=0; i<users.length; i++){
+                await Alarm.create({
+                    uid:users[i].id,
+                    content:"새로운 공지사항이 등록되었습니다.",
+                    pid:post.id,
+                    club_id:post.club_id
+                },{transaction:transaction});
+            }
+        }
         await transaction.commit();
         res.send(result);
     }catch(err){
@@ -198,7 +214,7 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
     }
 });
 
-//POSTMAN: 이벤트 글 작성@
+//POSTMAN: 이벤트 글 작성@+PUSH
 router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
     let transaction;
     try{
@@ -239,6 +255,17 @@ router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image
                 model:File,
                 attributes:['name','type']
             }],transaction:transaction});
+        //작성자 빼고 모두 알람
+        const users = await User.findAll({
+            where:{id:{[Sequelize.Op.not]:req.body.uid}}
+        });
+        for(var i=0; i<users.length; i++){
+            await Alarm.create({
+                uid:users[i].id,
+                content:"새로운 이벤트가 생성되었습니다.",
+                pid:post.id
+            },{transaction:transaction});
+        }
         await transaction.commit();
         res.send(result);
     }catch(err){
@@ -248,16 +275,66 @@ router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image
     }
 });
 
-//POSTMAN: 댓글 작성@
+//POSTMAN: 댓글 작성@ +PUSH
 router.post('/comment/:post_id',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await Comment.sequelize.transaction();
+        //1. content에 사용될 name 추출
+        const post = await Post.findOne({
+            where:{id:req.params.post_id},transaction:transaction
+        })
+        let name;
+        if(post.isEvent){
+            const user = await User.findOne({
+                where:{id:req.body.uid},attributes:['name'],transaction:transaction
+            });
+            name=user.name;
+        }else{
+            const club_user = await Club_user.findOne({
+                where:{uid:req.body.uid},attributes:['nickname'],transaction:transaction
+            })
+            name=club_user.nickname;
+        }
+
+        //댓글 작성
         const comment = await Comment.create({
             pid:req.params.post_id,
-            uid: req.body.uid,
+            uid:req.body.uid,
             comment: req.body.comment,
+        },{transaction:transaction});
+        
+
+        //알람 보낼 유저들 선정 - (댓글 작성자/게시글작성자 제외, 게시글 작성자는 아래서 따로 호출하기 때문)
+        const comment_user = await Comment.findAll({
+            where:{pid:req.params.post_id, uid:{[Sequelize.Op.not]:post.uid}, uid:{[Sequelize.Op.not]:req.body.uid}},
+            attributes:[[Sequelize.fn('DISTINCT',Sequelize.col('uid')),'uid']],
+            transaction:transaction
         });
+
+        //알람
+        for(var i=0; i<comment_user.length; i++){
+            await Alarm.create({
+                uid:comment_user[i].uid,
+                content:`${name}님이 게시글에 댓글을 작성했습니다.`,
+                pid:comment.pid,
+                comment_id:comment.id,
+                club_id:post.club_id
+            },{transaction:transaction})
+        }
+        //게시글 작성자에게 알람 - 자신이 댓글단 경우만 제외
+        if (post.uid != comment.uid)
+            await Alarm.create({
+                uid: post.uid,
+                content: `${name}님이 게시글에 댓글을 작성했습니다.`,
+                pid: comment.pid,
+                comment_id: comment.id,
+                club_id: post.club_id
+            }, { transaction: transaction })
+        await transaction.commit();
         res.send(comment);
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }

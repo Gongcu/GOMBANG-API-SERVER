@@ -27,5 +27,6 @@ module.exports = class Comment extends Sequelize.Model{
     static associate(db){
         db.Comment.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
         db.Comment.belongsTo(db.Post,{foreignKey:'pid',targetKey:'id'});
+        db.Comment.hasMany(db.Alarm,{foreignKey:'comment_id',sourceKey:'id',onDelete: 'CASCADE'});
     }
 };

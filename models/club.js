@@ -81,5 +81,6 @@ module.exports = class Club extends Sequelize.Model{
         db.Club.hasMany(db.Post,{foreignKey:'club_id',sourceKey:'id'});
         db.Club.hasMany(db.Chatroom,{foreignKey:'club_id',sourceKey:'id'});
         db.Club.hasMany(db.Club_hashtag,{foreignKey:'club_id',sourceKey:'id'});
+        db.Club.hasMany(db.Alarm,{foreignKey:'club_id',sourceKey:'id'});
     }
 };

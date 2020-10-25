@@ -1,9 +1,13 @@
 const express = require('express');
 const Question = require('../models/question');
 const Answer = require('../models/answer');
+const Alarm = require('../models/alarm');
 const updateRow = require('../etc/updateRow');
 const deleteRow = require('../etc/deleteRow');
 const nodemailer = require('nodemailer');
+const Club_user = require('../models/club_user');
+const Sequelize = require('sequelize');
+
 const router = express.Router();
 
 
@@ -39,17 +43,33 @@ router.get('/app/:uid',async(req,res,next)=>{
     }
 });
 
-//POSTMAN: 질문 작성@
+//POSTMAN: 질문 작성@ + PUSH
 router.post('/question',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await Question.sequelize.transaction();
         const question = await Question.create({
                 club_id: req.body.club_id,
                 uid: req.body.uid,
                 question: req.body.question,
                 //createdAt은 질문 생성시 default 처리
-        });
+        },{transaction:transaction});
+        const managers = await Club_user.findAll({
+            where:{club_id:req.body.club_id, authority:{[Sequelize.Op.not]:'멤버'}},
+            attributes:['uid']
+        })
+        for(var i=0; i<managers.length; i++){
+            await Alarm.create({
+                content:"새로운 문의사항이 작성되었습니다.",
+                club_id: req.body.club_id,
+                question_id:question.id,
+                uid:managers[i].uid
+            },{transaction:transaction});
+        }
+        await transaction.commit();
         res.send(question)
     }catch(err){
+        if(transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -97,19 +117,25 @@ router.post('/app/question', async (req, res, next) => {
     }
 });
 
-//POSTMAN, 답글 작성시 답글 생성후 질문 id에 해당하는 로우의 answer 값을 answer의 id로 업데이트.
+//POSTMAN: 답글 작성@ + PUSH
 router.post('/answer',async(req,res,next)=>{
     let transaction;
     try{
         transaction = await Answer.sequelize.transaction();
         const answer = await Answer.create({
             answer: req.body.answer,
+        },{transaction:transaction});
+        const question = await Question.findOne({
+            where:{id:req.body.question_id},transaction:transaction
         });
-        await Question.update({
-            aid:answer.id
-        }, {
-            where:{id:req.body.question_id}
-        })
+        question.aid = answer.id;
+        await question.save({transaction:transaction});
+        await Alarm.create({
+            content:"질문에 답변이 작성되었습니다.",
+            club_id:question.club_id,
+            question_id:req.body.question_id,
+            uid:question.uid
+        },{transaction:transaction});
         await transaction.commit();
         res.send(answer);
     }catch(err){
