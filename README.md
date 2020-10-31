@@ -1,6 +1,7 @@
-## REST-API-SERVER(단국대학교 Gombang 동아리 관리 어플리케이션) <img src=https://user-images.githubusercontent.com/30337408/97773497-89bdec80-1b93-11eb-82ad-cf1b8c2d9712.png heigth='5%' width='5%'>
+## REST-API-SERVER
+## 단국대학교 Gombang 동아리 관리 어플리케이션 <img src=https://user-images.githubusercontent.com/30337408/97773497-89bdec80-1b93-11eb-82ad-cf1b8c2d9712.png heigth='3%' width='3%'>
 
-현재 진행 중인 단국대학교 동아리 관리 어플리케이션의 백엔드로 사용될 Express 프레임워크를 활용한 REST-API-SERVER입니다.
+현재 진행 중인 단국대학교 동아리 관리 어플리케이션의 백엔드로 사용될 Express 프레임워크를 활용한 REST-API-SERVER.
 
 ### STACK
  - Express
