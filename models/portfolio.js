@@ -15,7 +15,7 @@ module.exports = class Portfolio extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Portfolio.belongsTo(db.Post,{foreignKey:'pid',targetKey:'id'});
-        db.Portfolio.belongsTo(db.Portfolio_folder,{foreignKey:'fid',targetKey:'id'});
+        db.Portfolio.belongsTo(db.Post,{foreignKey:'postId',targetKey:'id'});
+        db.Portfolio.belongsTo(db.Portfolio_folder,{foreignKey:'portfolioFolderId',targetKey:'id'});
     }
 };

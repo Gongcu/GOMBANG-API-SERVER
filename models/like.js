@@ -15,7 +15,7 @@ module.exports = class Like extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Like.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.Like.belongsTo(db.Post,{foreignKey:'pid',targetKey:'id'});
+        db.Like.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Like.belongsTo(db.Post,{foreignKey:'postId',targetKey:'id'});
     }
 };

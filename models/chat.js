@@ -26,7 +26,7 @@ module.exports = class Chat extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Chat.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
+        db.Chat.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
         db.Chat.belongsTo(db.Chatroom,{foreignKey:'chatroomId',targetKey:'id'});
         db.Chat.hasMany(db.Chat_unread_user,{foreignKey:'chatId',sourceKey:'id'});
         db.Chat.hasMany(db.File,{foreignKey:'chatId',sourceKey:'id'});

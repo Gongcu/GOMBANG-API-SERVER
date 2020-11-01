@@ -12,10 +12,10 @@ const router = express.Router();
 
 
 //POSTMAN, 해당하는 동아리의 질문, 답변 목록을 전부 가져옴
-router.get('/:club_id',async(req,res,next)=>{
+router.get('/:clubId',async(req,res,next)=>{
     try{
         const question = await Question.findAll({
-            where:{club_id:req.params.club_id},
+            where:{clubId:req.params.clubId},
             include:[{
                 model:Answer,
             }]
@@ -28,10 +28,10 @@ router.get('/:club_id',async(req,res,next)=>{
 });
 
 //POSTMAN: APP으로 보낸 나의 문의사항 
-router.get('/app/:uid',async(req,res,next)=>{
+router.get('/app/:userId',async(req,res,next)=>{
     try{
         const question = await Question.findAll({
-            where:{uid:req.params.uid, club_id:null},
+            where:{userId:req.params.userId, clubId:null},
             include:[{
                 model:Answer,
             }]
@@ -49,21 +49,21 @@ router.post('/question',async(req,res,next)=>{
     try{
         transaction = await Question.sequelize.transaction();
         const question = await Question.create({
-                club_id: req.body.club_id,
-                uid: req.body.uid,
+                clubId: req.body.clubId,
+                userId: req.body.userId,
                 question: req.body.question,
                 //createdAt은 질문 생성시 default 처리
         },{transaction:transaction});
         const managers = await Club_user.findAll({
-            where:{club_id:req.body.club_id, authority:{[Sequelize.Op.not]:'멤버'}},
-            attributes:['uid']
+            where:{clubId:req.body.clubId, authority:{[Sequelize.Op.not]:'멤버'}},
+            attributes:['userId']
         })
         for(var i=0; i<managers.length; i++){
             await Alarm.create({
                 content:"새로운 문의사항이 작성되었습니다.",
-                club_id: req.body.club_id,
-                question_id:question.id,
-                uid:managers[i].uid
+                clubId: req.body.clubId,
+                questionId:question.id,
+                userId:managers[i].userId
             },{transaction:transaction});
         }
         await transaction.commit();
@@ -79,7 +79,7 @@ router.post('/question',async(req,res,next)=>{
 router.post('/app/question', async (req, res, next) => {
     try {
         const question = await Question.create({
-            uid: req.body.uid,
+            userId: req.body.userId,
             question: req.body.question,
             //createdAt은 질문 생성시 default 처리
         });
@@ -126,15 +126,15 @@ router.post('/answer',async(req,res,next)=>{
             answer: req.body.answer,
         },{transaction:transaction});
         const question = await Question.findOne({
-            where:{id:req.body.question_id},transaction:transaction
+            where:{id:req.body.questionId},transaction:transaction
         });
-        question.aid = answer.id;
+        question.answerId = answer.id;
         await question.save({transaction:transaction});
         await Alarm.create({
             content:"질문에 답변이 작성되었습니다.",
-            club_id:question.club_id,
-            question_id:req.body.question_id,
-            uid:question.uid
+            clubId:question.clubId,
+            questionId:req.body.questionId,
+            userId:question.userId
         },{transaction:transaction});
         await transaction.commit();
         res.send(answer);
@@ -146,9 +146,9 @@ router.post('/answer',async(req,res,next)=>{
 });
 
 //POSTMAN:질문수정
-router.patch('/question/:id',async(req,res,next)=>{
+router.patch('/question/:questionId',async(req,res,next)=>{
     try{
-        const question = await Question.findOne({where:{id:req.params.id, aid:null}})
+        const question = await Question.findOne({where:{id:req.params.questionId, answerId:null}})
         if(question){
             question.question=req.body.question;
             await question.save();
@@ -163,9 +163,9 @@ router.patch('/question/:id',async(req,res,next)=>{
 });
 
 //POSTMAN:질문 수정
-router.patch('/answer/:id',async(req,res,next)=>{
+router.patch('/answer/:answerId',async(req,res,next)=>{
     try{
-        const answer = await Answer.findOne({where:{id:req.params.id}});
+        const answer = await Answer.findOne({where:{id:req.params.answerId}});
         if(answer){
             answer.answer=req.body.answer;
             await answer.save();
@@ -180,18 +180,18 @@ router.patch('/answer/:id',async(req,res,next)=>{
 });
 
 //POSTMAN: 질문 삭제, 답변이 존재할 경우 답변도 삭제@
-router.delete('/question/:id',async(req,res,next)=>{
+router.delete('/question/:questionId',async(req,res,next)=>{
     let transaction;
     try{
         transaction = await Question.sequelize.transaction();
         const question = await Question.findOne({
-            where:{id:req.params.id}
+            where:{id:req.params.questionId}
         });
-        await Question.destroy({
-            where:{id:req.params.id}
+        const result = await Question.destroy({
+            where:{id:req.params.questionId}
         });
-        const result = await Answer.destroy({
-            where:{id:question.aid}
+        await Answer.destroy({
+            where:{id:question.answerId}
         });
         await transaction.commit();
         res.send(deleteRow(result));
@@ -203,20 +203,17 @@ router.delete('/question/:id',async(req,res,next)=>{
 });
 
 //POSTMAN: 답변 삭제
-router.delete('/answer/:id',async(req,res,next)=>{
+router.delete('/answer/:answerId',async(req,res,next)=>{
     let transaction;
     try{
         transaction = await Question.sequelize.transaction();
-        const answer = await Answer.findOne({
-            where:{id:req.params.id}
-        });
         const result = await Answer.destroy({
-            where:{id:req.params.id}
+            where:{id:req.params.answerId}
         });
         await Question.update({
-            aid:null
+            answerId:null
         },{
-            where:{aid:answer.id}
+            where:{answerId:req.params.answerId}
         })
         await transaction.commit();
         res.send(deleteRow(result))

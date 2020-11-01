@@ -30,11 +30,11 @@ module.exports = class Alarm extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Alarm.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.Alarm.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'}); //공지사항, 이벤트, 댓글
-        db.Alarm.belongsTo(db.Post,{foreignKey:'pid',targetKey:'id'}); //공지사항, 이벤트, 댓글
-        db.Alarm.belongsTo(db.Comment,{foreignKey:'comment_id',targetKey:'id'}); //댓글
-        db.Alarm.belongsTo(db.ApplicationForm,{foreignKey:'form_id',targetKey:'id'}); //신청서
-        db.Alarm.belongsTo(db.Question,{foreignKey:'question_id',targetKey:'id'}); //QnA, 문의사항
+        db.Alarm.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Alarm.belongsTo(db.Club,{foreignKey:'clubId',targetKey:'id'}); //공지사항, 이벤트, 댓글
+        db.Alarm.belongsTo(db.Post,{foreignKey:'postId',targetKey:'id'}); //공지사항, 이벤트, 댓글
+        db.Alarm.belongsTo(db.Comment,{foreignKey:'commentId',targetKey:'id'}); //댓글
+        db.Alarm.belongsTo(db.ApplicationForm,{foreignKey:'applicationFormId',targetKey:'id'}); //신청서
+        db.Alarm.belongsTo(db.Question,{foreignKey:'questionId',targetKey:'id'}); //QnA, 문의사항
     }
 };

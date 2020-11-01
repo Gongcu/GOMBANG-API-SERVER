@@ -12,7 +12,7 @@ module.exports = class Portfolio_folder extends Sequelize.Model{
                 allowNull:false,
                 defaultValue:false,
             },
-            favorite_click_time:{
+            favoriteClickedTime:{
                 type:Sequelize.STRING(20),
                 allowNull:true,
             },
@@ -28,7 +28,7 @@ module.exports = class Portfolio_folder extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Portfolio_folder.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.Portfolio_folder.hasMany(db.Portfolio,{foreignKey:'fid',sourceKey:'id',onDelete: 'CASCADE'});
+        db.Portfolio_folder.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Portfolio_folder.hasMany(db.Portfolio,{foreignKey:'portfolioFolderId',sourceKey:'id',onDelete: 'CASCADE'});
     }
 };

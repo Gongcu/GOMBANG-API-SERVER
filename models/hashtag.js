@@ -19,7 +19,7 @@ module.exports = class Hashtag extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Hashtag.hasMany(db.Club_hashtag,{foreignKey:'hid',sourceKey:'id'});
+        db.Hashtag.hasMany(db.Club_hashtag,{foreignKey:'hashtagId',sourceKey:'id'});
     }
 };
 

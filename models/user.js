@@ -33,7 +33,7 @@ module.exports = class User extends Sequelize.Model{
                 type:Sequelize.STRING(20),
                 allowNull:true,
             },
-            student_number:{
+            studentNumber:{
                 type:Sequelize.STRING(10),
                 allowNull:true,
             },
@@ -49,7 +49,7 @@ module.exports = class User extends Sequelize.Model{
                 type:Sequelize.STRING(10),
                 allowNull:true,
             },
-            push_alarm:{
+            pushAlarm:{
                 type:Sequelize.BOOLEAN,
                 allowNull:false,
                 defaultValue:true
@@ -66,23 +66,23 @@ module.exports = class User extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.User.hasMany(db.Club_user,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.ApplicationForm,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.User_favorite_club,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Question,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Club_user,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.ApplicationForm,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.User_favorite_club,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.Question,{foreignKey:'userId',sourceKey:'id'});
 
-        db.User.hasMany(db.Post,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Comment,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Like,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Post_participation_user,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Post,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.Comment,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.Like,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.Post_participation_user,{foreignKey:'userId',sourceKey:'id'});
 
-        db.User.hasMany(db.Portfolio_folder,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Portfolio_folder,{foreignKey:'userId',sourceKey:'id'});
 
-        db.User.hasMany(db.Chat,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Chatroom_user,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Chatroom_con_user,{foreignKey:'uid',sourceKey:'id'});
-        db.User.hasMany(db.Chat_unread_user,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Chat,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.Chatroom_user,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.Chatroom_con_user,{foreignKey:'userId',sourceKey:'id'});
+        db.User.hasMany(db.Chat_unread_user,{foreignKey:'userId',sourceKey:'id'});
 
-        db.User.hasMany(db.Alarm,{foreignKey:'uid',sourceKey:'id'});
+        db.User.hasMany(db.Alarm,{foreignKey:'userId',sourceKey:'id'});
     }
 };

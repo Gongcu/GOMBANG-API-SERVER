@@ -40,17 +40,6 @@ module.exports = class Calendar extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Calendar.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
+        db.Calendar.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
     }
 };
-
-/*
-{
-    "uid": "DFAJ12J3NVI",
-    "title": "야식 행사",
-    "color": "죽전",
-    "startDate": "2020.09.01",
-    "endDate":"2020.09.30"
-    "place": "소프트웨어 ICT관",
-    "memo":"학생증 지참"",
-}*/

@@ -24,7 +24,7 @@ module.exports = class File extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.File.belongsTo(db.Post,{foreignKey:'pid',targetKey:'id'});
+        db.File.belongsTo(db.Post,{foreignKey:'postId',targetKey:'id'});
         db.File.belongsTo(db.Chat,{foreignKey:'chatId',targetKey:'id'});
     }
 };

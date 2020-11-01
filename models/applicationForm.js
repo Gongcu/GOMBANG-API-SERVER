@@ -32,7 +32,7 @@ module.exports = class ApplicationForm extends Sequelize.Model{
                 type:Sequelize.STRING(10),
                 allowNull:true,
             },
-            student_number:{
+            studentNumber:{
                 type:Sequelize.STRING(10),
                 allowNull:false,
             },
@@ -72,8 +72,8 @@ module.exports = class ApplicationForm extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.ApplicationForm.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.ApplicationForm.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
-        db.ApplicationForm.hasMany(db.Alarm,{foreignKey:'form_id',sourceKey:'id',onDelete: 'CASCADE'});
+        db.ApplicationForm.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.ApplicationForm.belongsTo(db.Club,{foreignKey:'clubId',targetKey:'id'});
+        db.ApplicationForm.hasMany(db.Alarm,{foreignKey:'applicationFormId',sourceKey:'id',onDelete: 'CASCADE'});
     }
 };

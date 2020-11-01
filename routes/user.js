@@ -39,41 +39,38 @@ router.get('/',async(req,res,next)=>{
 });
 
 //POSTMAN
-router.get('/:id',async(req,res,next)=>{
+router.get('/:userId',async(req,res,next)=>{
     try{
         const user = await User.findOne({
             where:{
-                [Op.or]:[{kakaoId:req.params.id},{id:req.params.id}],
+                [Op.or]:[{kakaoId:req.params.userId},{id:req.params.userId}],
             },
-            include:[{
-                model:User_favorite_club,
-                attributes:{exclude:['id','uid','club_id']},
-                include:[{
-                    model:Club,
-                    attributes:['id','name','image']
-                }]
-            },{
-                model:Club_user,
-                attributes:{exclude:['id','uid','club_id']},
-                include:[{
-                    model:Club,
-                    attributes:['id','name','image']
-                }]
-            }]
-        });
+            raw:true,
+        })
+        const favoriteClub = await User_favorite_club.sequelize.query(
+            `SELECT c.id, c.name, c.image, ufc.itemOrder `+
+            `FROM user_favorite_club ufc join clubs c on ufc.clubId=c.id WHERE ufc.userId=${req.params.userId} ORDER BY itemOrder`
+        );
+        const signedClub = await User_favorite_club.sequelize.query(
+            `SELECT c.id, c.name, c.image, cu.nickname, cu.authority, cu.alarm `+
+            `FROM club_users cu join clubs c on cu.clubId=c.id WHERE cu.userId=${req.params.userId}`
+        );
+        user.favoriteClub = favoriteClub[0];
+        user.signedClub = signedClub[0];
+
         res.send(user);
-    }catch(err){
+    } catch(err){
         console.error(err);
         next(err);
     }
 });
 
 //POSTMAN: 즐겨찾기 동아리 조회@
-router.get('/favorite_club_list/:uid',async(req,res,next)=>{
+router.get('/:userId/favorite_club_list',async(req,res,next)=>{
     try{
         const list = await User_favorite_club.findAll({
-            where:{uid:req.params.uid},
-            attributes:{exclude:['uid','club_id','id'] },
+            where:{userId:req.params.userId},
+            attributes:{exclude:['userId','clubId','id'] },
             include:[{
                 model:Club,
                 attributes:['id','name','image']
@@ -105,7 +102,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 campus: req.body.campus,
                 college: req.body.college,
                 department: req.body.department,
-                student_number: req.body.student_number,
+                studentNumber: req.body.studentNumber,
             });
         } else {
             user = await User.create({
@@ -118,11 +115,11 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 campus: req.body.campus,
                 college: req.body.college,
                 department: req.body.department,
-                student_number: req.body.student_number,
+                studentNumber: req.body.studentNumber,
             });
         }
         await Portfolio_folder.create({
-            uid:user.id,
+            userId:user.id,
             name:"기본 폴더"
         })
         res.send(user);
@@ -135,11 +132,11 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
 
 
 //POSTMAN: 프로필 이미지 변경@
-router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
+router.patch('/:userId/profile',uploader.single('image'),async(req,res,next)=>{
     try{
         if(req.file){
             const prevUserProfile = await User.findOne({
-                where:{id:req.params.uid}
+                where:{id:req.params.userId}
             });
             if(prevUserProfile.image !== "")
                 fs.unlink(appDir + '/upload/' + prevUserProfile.image, (err) => {
@@ -148,7 +145,7 @@ router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
             const user = await User.update({
                 image:req.file.filename
             },{
-                where:{id:req.params.uid}
+                where:{id:req.params.userId}
             });
             if(updateRow(user)){
                 res.send(req.file.filename)
@@ -165,14 +162,14 @@ router.patch('/profile/:uid',uploader.single('image'),async(req,res,next)=>{
 });
 
 //POSTMAN: 동아리 즐겨찾기 추가/삭제
-router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
+router.patch('/:userId/favorite_club_list',async(req,res,next)=>{
     try{
         const exist = await User_favorite_club.findOne({
-            where:{uid:req.params.uid,club_id:req.body.club_id}
+            where:{userId:req.params.userId,clubId:req.body.clubId}
         });
         if(!exist){//존재하지 않음:추가
             const maxOrderedItem = await User_favorite_club.findOne({
-                where:{uid:req.params.uid},
+                where:{userId:req.params.userId},
                 order:[['itemOrder','DESC']],
             })
             let maxOrder;
@@ -182,8 +179,8 @@ router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
                 maxOrder= maxOrderedItem.itemOrder+1;
             }
             const result1 = await User_favorite_club.create({
-                uid:req.params.uid,
-                club_id:req.body.club_id,
+                userId:req.params.userId,
+                clubId:req.body.clubId,
                 itemOrder:maxOrder
             })
             if(result1)
@@ -192,7 +189,7 @@ router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
                 res.send("err:cannnot add the club")
         }else{//존재:삭제
             const result2 = await User_favorite_club.destroy({
-                where:{uid:req.params.uid,club_id:req.body.club_id}
+                where:{userId:req.params.userId,clubId:req.body.clubId}
             });
             if(result2)
                 res.send(false)
@@ -206,7 +203,7 @@ router.patch('/favorite_club_list/:uid',async(req,res,next)=>{
 });
 
 //POSTMAN: 동아리 즐겨찾기 순서변경@
-router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
+router.patch('/:userId/favorite_club_list/order',async(req,res,next)=>{
     let transaction;
     try{
         var i=0;
@@ -216,7 +213,7 @@ router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
             await User_favorite_club.update({
                 itemOrder:i
             },{
-                where:{uid:req.params.uid,club_id:list[i]},transaction:transaction
+                where:{userId:req.params.userId,clubId:list[i]},transaction:transaction
             })
         }
         await transaction.commit()
@@ -234,18 +231,17 @@ router.patch('/favorite_club_list/order/:uid',async(req,res,next)=>{
 });
 
 //POSTMAN: 유저 삭제
-router.delete('/:uid',async(req,res,next)=>{
+router.delete('/:userId',async(req,res,next)=>{
     try{
         const user = await User.findOne({
-            where:{id:req.params.uid}});
+            where:{id:req.params.userId}});
         if(user.image){
             fs.unlink(appDir+'/upload/'+user.image, (err) => {
                 console.log(err);
             });
         }
         const result = await User.destroy({
-            where:{id:req.params.uid}});
-        
+            where:{id:req.params.userId}});
         res.send(deleteRow(result));
     }catch(err){
         console.error(err);

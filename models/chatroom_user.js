@@ -20,7 +20,7 @@ module.exports = class Chatroom_user extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Chatroom_user.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
+        db.Chatroom_user.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
         db.Chatroom_user.belongsTo(db.Chatroom,{foreignKey:'chatroomId',targetKey:'id'});
     }
 };

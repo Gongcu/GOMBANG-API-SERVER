@@ -21,7 +21,7 @@ module.exports = class Club extends Sequelize.Model{
                 allowNull:true,
                 defaultValue:"",
             },
-            nickname_rule:{
+            nicknameRule:{
                 type:Sequelize.STRING(30),
                 allowNull:true,
             },
@@ -38,12 +38,12 @@ module.exports = class Club extends Sequelize.Model{
                 type:Sequelize.STRING(10),
                 allowNull:true,
             },
-            membership_fee:{
+            membershipFee:{
                 type:Sequelize.INTEGER,
                 allowNull:true,
                 defaultValue:0,
             },
-            member_count:{
+            memberCount:{
                 type:Sequelize.INTEGER,
                 allowNull:true,
             },
@@ -52,12 +52,12 @@ module.exports = class Club extends Sequelize.Model{
                 allowNull:false,
                 defaultValue:true,
             },
-            feed_exposure:{
+            feedExposure:{
                 type:Sequelize.BOOLEAN,
                 allowNull:false,
                 defaultValue:true,
             },
-            notice_exposure:{
+            noticeExposure:{
                 type:Sequelize.BOOLEAN,
                 allowNull:false,
                 defaultValue:true,
@@ -74,13 +74,13 @@ module.exports = class Club extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Club.hasMany(db.Club_user,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.hasMany(db.ApplicationForm,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.hasMany(db.User_favorite_club,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.hasMany(db.Question,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.hasMany(db.Post,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.hasMany(db.Chatroom,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.hasMany(db.Club_hashtag,{foreignKey:'club_id',sourceKey:'id'});
-        db.Club.hasMany(db.Alarm,{foreignKey:'club_id',sourceKey:'id'});
+        db.Club.hasMany(db.Club_user,{foreignKey:'clubId',sourceKey:'id'});
+        db.Club.hasMany(db.ApplicationForm,{foreignKey:'clubId',sourceKey:'id'});
+        db.Club.hasMany(db.User_favorite_club,{foreignKey:'clubId',sourceKey:'id'});
+        db.Club.hasMany(db.Question,{foreignKey:'clubId',sourceKey:'id'});
+        db.Club.hasMany(db.Post,{foreignKey:'clubId',sourceKey:'id'});
+        db.Club.hasMany(db.Chatroom,{foreignKey:'clubId',sourceKey:'id'});
+        db.Club.hasMany(db.Club_hashtag,{foreignKey:'clubId',sourceKey:'id'});
+        db.Club.hasMany(db.Alarm,{foreignKey:'clubId',sourceKey:'id'});
     }
 };

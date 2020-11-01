@@ -25,10 +25,10 @@ module.exports = class Question extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Question.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.Question.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
-        db.Question.belongsTo(db.Answer,{foreignKey:'aid',targetKey:'id'});//1:1
-        db.Question.hasMany(db.Alarm,{foreignKey:'question_id',sourceKey:'id',onDelete: 'CASCADE'});
+        db.Question.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Question.belongsTo(db.Club,{foreignKey:'clubId',targetKey:'id'});
+        db.Question.belongsTo(db.Answer,{foreignKey:'answerId',targetKey:'id'});//1:1
+        db.Question.hasMany(db.Alarm,{foreignKey:'questionId',sourceKey:'id',onDelete: 'CASCADE'});
 
     }
 };

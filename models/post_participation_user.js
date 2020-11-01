@@ -13,14 +13,14 @@ module.exports = class Post_participation_user extends Sequelize.Model{
             timestamps:false,
             underscored:false,
             modelName:'Post_participation_user',
-            tableName:'post_participation_user',
+            tableName:'post_participation_users',
             paranoid:false,
             charset:'utf8',
             collate:'utf8_general_ci',
         });
     }
     static associate(db){
-        db.Post_participation_user.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.Post_participation_user.belongsTo(db.Post,{foreignKey:'pid',targetKey:'id'});
+        db.Post_participation_user.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Post_participation_user.belongsTo(db.Post,{foreignKey:'postId',targetKey:'id'});
     }
 };

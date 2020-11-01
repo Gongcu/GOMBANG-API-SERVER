@@ -18,7 +18,7 @@ module.exports = class Post extends Sequelize.Model{
                 type:Sequelize.STRING,
                 allowNull:false,
             },
-            participation_fee:{
+            participationFee:{
                 type:Sequelize.INTEGER,
                 allowNull:false,
                 defaultValue:0,
@@ -64,15 +64,15 @@ module.exports = class Post extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Post.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.Post.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
+        db.Post.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Post.belongsTo(db.Club,{foreignKey:'clubId',targetKey:'id'});
 
-        db.Post.hasMany(db.File,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'}); //banner, image, file, video
-        db.Post.hasMany(db.Post_participation_user,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'}); 
-        db.Post.hasMany(db.Comment,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
-        db.Post.hasMany(db.Like,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
-        db.Post.hasMany(db.Portfolio,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
+        db.Post.hasMany(db.File,{foreignKey:'postId',sourceKey:'id',onDelete: 'CASCADE'}); //banner, image, file, video
+        db.Post.hasMany(db.Post_participation_user,{foreignKey:'postId',sourceKey:'id',onDelete: 'CASCADE'}); 
+        db.Post.hasMany(db.Comment,{foreignKey:'postId',sourceKey:'id',onDelete: 'CASCADE'});
+        db.Post.hasMany(db.Like,{foreignKey:'postId',sourceKey:'id',onDelete: 'CASCADE'});
+        db.Post.hasMany(db.Portfolio,{foreignKey:'postId',sourceKey:'id',onDelete: 'CASCADE'});
 
-        db.Post.hasMany(db.Alarm,{foreignKey:'pid',sourceKey:'id',onDelete: 'CASCADE'});
+        db.Post.hasMany(db.Alarm,{foreignKey:'postId',sourceKey:'id',onDelete: 'CASCADE'});
     }
 };

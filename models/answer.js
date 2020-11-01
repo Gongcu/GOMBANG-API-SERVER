@@ -25,6 +25,6 @@ module.exports = class Answer extends Sequelize.Model{
         });
     }
     static associate(db){
-        db.Answer.hasOne(db.Question,{foreignKey:'aid',sourceKey:'id'});
+        db.Answer.hasOne(db.Question,{foreignKey:'answerId',sourceKey:'id'});
     }
 };

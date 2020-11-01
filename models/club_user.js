@@ -23,14 +23,14 @@ module.exports = class Club_User extends Sequelize.Model{
             timestamps:false,
             underscored:false,
             modelName:'Club_user',
-            tableName:'club_user',
+            tableName:'club_users',
             paranoid:false,
             charset:'utf8',
             collate:'utf8_general_ci',
         });
     }
     static associate(db){
-        db.Club_user.belongsTo(db.User,{foreignKey:'uid',targetKey:'id'});
-        db.Club_user.belongsTo(db.Club,{foreignKey:'club_id',targetKey:'id'});
+        db.Club_user.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Club_user.belongsTo(db.Club,{foreignKey:'clubId',targetKey:'id'});
     }
 };
