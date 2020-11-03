@@ -13,7 +13,10 @@ router.get('/:userId',async(req,res,next)=>{
         const folder = await Portfolio_folder.findAll({
             where:{userId:req.params.userId},
         })
-        res.send(folder);
+        if(folder.length)
+            res.status(200).send(folder);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -26,9 +29,12 @@ router.get('/folder/:portfolioFolderId',async(req,res,next)=>{
         const folder = await Portfolio_folder.findOne({
             where:{id:req.params.portfolioFolderId},raw:true
         });
-        const post = await Portfolio.findAll({where:{portfolioFolderId:req.params.portfolioFolderId}});
-        folder.portfolio = post;
-        res.send(folder);
+        if(folder){
+            const post = await Portfolio.findAll({where:{portfolioFolderId:req.params.portfolioFolderId}});
+            folder.portfolio = post;
+            res.status(200).send(folder);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -41,7 +47,7 @@ router.post('/folder',async(req,res,next)=>{
             userId:req.body.userId,
             name:req.body.name
         })
-        res.send(folder);
+        res.status(200).send(folder);
     }catch(err){
         console.error(err);
         next(err);
@@ -56,7 +62,7 @@ router.post('/:postId',async(req,res,next)=>{
             userId:req.body.userId,
             postId:req.params.postId
         })
-        res.send(portfolio)
+        res.status(200).send(portfolio)
     }catch(err){
         console.error(err);
         next(err);
@@ -68,12 +74,15 @@ router.post('/:postId',async(req,res,next)=>{
 //POSTMAN 폴더명 수정
 router.patch('/folder/:portfolioFolderId',async(req,res,next)=>{
     try{
-        const folder = await Portfolio_folder.update({
+        const result = await Portfolio_folder.update({
             name:req.body.name
         },{
             where:{id:req.params.portfolioFolderId}
-        })
-        res.send(updateRow(folder));
+        });
+        if(updateRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -84,13 +93,16 @@ router.patch('/folder/:portfolioFolderId',async(req,res,next)=>{
 router.patch('/folder/favorite/:portfolioFolderId',async(req,res,next)=>{
     try{
         const prevFolder = await Portfolio_folder.findOne({where:{id:req.params.portfolioFolderId}});
-        prevFolder.isFavorite = !(prevFolder.isFavorite);
-        if(prevFolder.isFavorite)
-            prevFolder.favoriteClickedTime = formatDateTime(Date());
-        else
-            prevFolder.favoriteClickedTime = null;
-        await prevFolder.save();
-        res.send(prevFolder.isFavorite);
+        if(prevFolder){
+            prevFolder.isFavorite = !(prevFolder.isFavorite);
+            if(prevFolder.isFavorite)
+                prevFolder.favoriteClickedTime = formatDateTime(Date());
+            else
+                prevFolder.favoriteClickedTime = null;
+            await prevFolder.save();
+            res.status(200).send(prevFolder.isFavorite);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -99,8 +111,11 @@ router.patch('/folder/favorite/:portfolioFolderId',async(req,res,next)=>{
 //POSTMAN:특정 포트폴리오 삭제
 router.delete('/:portfolioId',async(req,res,next)=>{
     try{
-        const result = await Portfolio.destroy({where:{id:req.params.portfolioId}})
-        res.send(deleteRow(result));
+        const result = await Portfolio.destroy({where:{id:req.params.portfolioId}});
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -111,7 +126,10 @@ router.delete('/:portfolioId',async(req,res,next)=>{
 router.delete('/folder/:portfolioFolderId',async(req,res,next)=>{
     try{
         const result = await Portfolio_folder.destroy({where:{id:req.params.portfolioFolderId}})
-        res.send(deleteRow(result));
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);

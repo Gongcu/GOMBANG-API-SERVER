@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
 const User = require('../models/user');
-const Club = require('../models/club');
-const Club_user = require('../models/club_user');
 const User_favorite_club = require('../models/user_favorite_club');
 const Portfolio_folder = require('../models/portfolio_folder');
 const {Op} = require('sequelize');
@@ -28,12 +26,13 @@ var appDir = path.dirname(require.main.filename);
 
 router.use(bodyParser.json());
 
+
+//테스트용 전체 유저 조회
 router.get('/',async(req,res,next)=>{
     try{
         const user = await User.findAll({});
-        res.send(user);
+        res.status(200).send(user);
     }catch(err){
-        console.error(err);
         next(err);
     }
 });
@@ -47,20 +46,24 @@ router.get('/:userId',async(req,res,next)=>{
             },
             raw:true,
         })
-        const favoriteClub = await User_favorite_club.sequelize.query(
-            `SELECT c.id, c.name, c.image, ufc.itemOrder `+
-            `FROM user_favorite_club ufc join clubs c on ufc.clubId=c.id WHERE ufc.userId=${req.params.userId} ORDER BY itemOrder`
-        );
-        const signedClub = await User_favorite_club.sequelize.query(
-            `SELECT c.id, c.name, c.image, cu.nickname, cu.authority, cu.alarm `+
-            `FROM club_users cu join clubs c on cu.clubId=c.id WHERE cu.userId=${req.params.userId}`
-        );
-        user.favoriteClub = favoriteClub[0];
-        user.signedClub = signedClub[0];
-
-        res.send(user);
+        if(user){
+            const favoriteClub = await User_favorite_club.sequelize.query(
+                `SELECT c.id, c.name, c.image, ufc.itemOrder `+
+                `FROM user_favorite_club ufc join clubs c on ufc.clubId=c.id WHERE ufc.userId=${req.params.userId} ORDER BY itemOrder`
+            );
+            const signedClub = await User_favorite_club.sequelize.query(
+                `SELECT c.id, c.name, c.image, cu.nickname, cu.authority, cu.alarm `+
+                `FROM club_users cu join clubs c on cu.clubId=c.id WHERE cu.userId=${req.params.userId}`
+            );
+            user.favoriteClub = favoriteClub[0];
+            user.signedClub = signedClub[0];
+    
+            res.status(200).send(user);
+        }else{
+            res.status(204).send();
+        }
     } catch(err){
-        console.error(err);
+        console.log(err);
         next(err);
     }
 });
@@ -68,18 +71,16 @@ router.get('/:userId',async(req,res,next)=>{
 //POSTMAN: 즐겨찾기 동아리 조회@
 router.get('/:userId/favorite_club_list',async(req,res,next)=>{
     try{
-        const list = await User_favorite_club.findAll({
-            where:{userId:req.params.userId},
-            attributes:{exclude:['userId','clubId','id'] },
-            include:[{
-                model:Club,
-                attributes:['id','name','image']
-            }],
-            order:[['itemOrder','ASC']]
-        });
-        res.send(list);
+        const favoriteClub = await User_favorite_club.sequelize.query(
+            `SELECT c.id, c.name, c.image, ufc.itemOrder `+
+            `FROM user_favorite_club ufc join clubs c on ufc.clubId=c.id WHERE ufc.userId=${req.params.userId} ORDER BY itemOrder`
+        );
+        if(favoriteClub[0].length!==0)
+            res.status(200).send(favoriteClub[0]);
+        else{
+            res.status(204).send();
+        }
     }catch(err){
-        console.error(err);
         next(err);
     }
 });
@@ -88,7 +89,9 @@ router.get('/:userId/favorite_club_list',async(req,res,next)=>{
 
 //POSTMAN: 유저 추가@
 router.post('/',uploader.single('image'),async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await User.sequelize.transaction();
         var user;
         if(req.file){
             user = await User.create({
@@ -103,7 +106,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 college: req.body.college,
                 department: req.body.department,
                 studentNumber: req.body.studentNumber,
-            });
+            },{transaction:transaction});
         } else {
             user = await User.create({
                 name: req.body.name,
@@ -116,15 +119,16 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 college: req.body.college,
                 department: req.body.department,
                 studentNumber: req.body.studentNumber,
-            });
+            },{transaction:transaction});
         }
         await Portfolio_folder.create({
             userId:user.id,
             name:"기본 폴더"
-        })
-        res.send(user);
+        },{transaction:transaction});
+        await transaction.commit();
+        res.status(200).send(user);
     }catch(err){
-        console.error(err);
+        if(transaction) await transaction.rollback();
         next(err);
     }
 });
@@ -134,43 +138,42 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
 //POSTMAN: 프로필 이미지 변경@
 router.patch('/:userId/profile',uploader.single('image'),async(req,res,next)=>{
     try{
-        if(req.file){
-            const prevUserProfile = await User.findOne({
-                where:{id:req.params.userId}
+        const user = await User.findOne({
+            where:{id:req.params.userId}
+        });
+        if(user){
+            let prevImageFile = user.image;
+            if(req.file)
+                user.image = req.file.filename;
+            else
+                user.image = "";
+            await user.save().then(()=>{
+                if(prevImageFile !== "")
+                    fs.unlink(appDir + '/upload/' + prevImageFile, (err) => {
+                        console.log(err);
+                    });
             });
-            if(prevUserProfile.image !== "")
-                fs.unlink(appDir + '/upload/' + prevUserProfile.image, (err) => {
-                    console.log(err);
-                });
-            const user = await User.update({
-                image:req.file.filename
-            },{
-                where:{id:req.params.userId}
-            });
-            if(updateRow(user)){
-                res.send(req.file.filename)
-            }else{
-                res.send(updateRow(user));
-            }
-        }else{
-            res.send(false);
-        }
+            res.status(200).send(user.image);
+        }else
+            res.status(204).send();
     }catch(err){
-        console.error(err);
         next(err);
     }
 });
 
 //POSTMAN: 동아리 즐겨찾기 추가/삭제
 router.patch('/:userId/favorite_club_list',async(req,res,next)=>{
+    let transaction;
     try{
+        transaction = await User_favorite_club.sequelize.transaction();
         const exist = await User_favorite_club.findOne({
-            where:{userId:req.params.userId,clubId:req.body.clubId}
+            where:{userId:req.params.userId,clubId:req.body.clubId},transaction:transaction
         });
         if(!exist){//존재하지 않음:추가
             const maxOrderedItem = await User_favorite_club.findOne({
                 where:{userId:req.params.userId},
                 order:[['itemOrder','DESC']],
+                transaction:transaction
             })
             let maxOrder;
             if(maxOrderedItem==null){//즐겨찾기 했던 동아리가 하나도 없는경우
@@ -178,26 +181,23 @@ router.patch('/:userId/favorite_club_list',async(req,res,next)=>{
             }else{
                 maxOrder= maxOrderedItem.itemOrder+1;
             }
-            const result1 = await User_favorite_club.create({
+            await User_favorite_club.create({
                 userId:req.params.userId,
                 clubId:req.body.clubId,
                 itemOrder:maxOrder
+            },{transaction:transaction}).then(()=>{
+                res.status(200).send(true);
             })
-            if(result1)
-                res.send(true)
-            else
-                res.send("err:cannnot add the club")
         }else{//존재:삭제
-            const result2 = await User_favorite_club.destroy({
+            await User_favorite_club.destroy({
                 where:{userId:req.params.userId,clubId:req.body.clubId}
-            });
-            if(result2)
-                res.send(false)
-            else
-                res.send("err:cannnot delete the club")
+            },{transaction:transaction}).then(()=>{
+                res.status(200).send(false);
+            })
         }
+        await transaction.commit();
     }catch(err){
-        console.error(err);
+        if(transaction) await transaction.rollback();
         next(err);
     }
 });
@@ -208,6 +208,11 @@ router.patch('/:userId/favorite_club_list/order',async(req,res,next)=>{
     try{
         var i=0;
         var list = req.body.favorite_club_list;
+        const favoriteClubList = await User_favorite_club.findAll({where:{userId:req.params.userId}});
+
+        if(list.length !== favoriteClubList.length)
+            throw new Error("All favorite clubs required");
+            
         transaction = await User_favorite_club.sequelize.transaction();
         for(; i<list.length; i++){
             await User_favorite_club.update({
@@ -217,15 +222,10 @@ router.patch('/:userId/favorite_club_list/order',async(req,res,next)=>{
             })
         }
         await transaction.commit()
-        if(i===list.length){
-            res.send(updateRow(1))
-        }else{
-            res.send(updateRow(0))
-        }
+        res.status(200).send(updateRow(1));
     }catch(err){
         if(transaction)
             await transaction.rollback()
-        console.error(err);
         next(err);
     }
 });
@@ -233,21 +233,17 @@ router.patch('/:userId/favorite_club_list/order',async(req,res,next)=>{
 //POSTMAN: 유저 삭제
 router.delete('/:userId',async(req,res,next)=>{
     try{
-        const user = await User.findOne({
-            where:{id:req.params.userId}});
+        const user = await User.findOne({where:{id:req.params.userId}});
         if(user.image){
             fs.unlink(appDir+'/upload/'+user.image, (err) => {
                 console.log(err);
             });
         }
-        const result = await User.destroy({
-            where:{id:req.params.userId}});
-        res.send(deleteRow(result));
+        const result = await user.destroy();
+        res.status(200).send(deleteRow(result));
     }catch(err){
-        console.error(err);
         next(err);
     }
 });
-
 
 module.exports = router;

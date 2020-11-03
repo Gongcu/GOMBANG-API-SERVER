@@ -11,11 +11,12 @@ const calendar = require('./routes/calendar')
 const qna = require('./routes/qna')
 const post = require('./routes/post')
 const portfolio = require('./routes/portfolio')
-const chat = require('./routes/chat')
 const chatroom = require('./routes/chatroom')
 const applicationForm = require('./routes/applicationForm')
 const search = require('./routes/search')
 const alarm = require('./routes/alarm')
+const file = require('./routes/file')
+
 
  // 소켓 start
 const http = require('http');
@@ -37,11 +38,16 @@ app.use('/calendar', calendar);
 app.use('/qna', qna);
 app.use('/post', post);
 app.use('/portfolio', portfolio);
-app.use('/chat', chat);
 app.use('/chatroom', chatroom);
 app.use('/applicationform', applicationForm);
 app.use('/search', search);
 app.use('/alarm', alarm);
+app.use('/file', file);
+
+// error handler
+app.use(function (err, req, res, next) {
+    res.status(400).send({Error:err.message});
+});
 
 server.listen(3000, () => { 
     console.log("the server is running")

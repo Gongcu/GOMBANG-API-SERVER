@@ -13,7 +13,10 @@ router.get('/:clubId',async(req,res,next)=>{
         const applicationform = await ApplicationForm.findAll({
             where:{clubId:req.params.clubId}
         })
-        res.send(applicationform);
+        if(applicationform.length)
+            res.status(200).send(applicationform);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -30,7 +33,10 @@ router.get('/:clubId/:userId',async(req,res,next)=>{
         const applicationform = await ApplicationForm.findOne({
             where:{userId:req.params.userId,clubId:req.params.clubId}
         })
-        res.send(applicationform);
+        if(applicationform)
+            res.status(200).send(applicationform);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -43,12 +49,14 @@ router.post('/:clubId', async (req, res, next) => {
     try {
         transaction = await ApplicationForm.sequelize.transaction();
         var itemCheck = await ApplicationForm.findOne({
-            where: { userId: req.body.userId, clubId: req.params.clubId },transaction:transaction
+            where: { userId: req.body.userId, clubId: req.params.clubId },
+            transaction:transaction
         });
         //기존 신청서가 존재할 경우 제거
         if (itemCheck !== null) {
             await ApplicationForm.destroy({
-                where: { id:itemCheck.id },transaction:transaction
+                where: { id:itemCheck.id },
+                transaction:transaction
             });
         }
         const applicationform = await ApplicationForm.create({
@@ -66,10 +74,13 @@ router.post('/:clubId', async (req, res, next) => {
             residence: req.body.residence,
             experience: req.body.experience
         },{transaction:transaction});
+
         const managers = await Club_user.findAll({
             where:{clubId:req.params.clubId, authority:{[Sequelize.Op.not]:'멤버'}},
-            attributes:['userId']
+            attributes:['userId'],
+            transaction:transaction
         })
+
         for(var i=0; i<managers.length; i++){
             await Alarm.create({
                 content:"새로운 가입 신청서가 작성되었습니다.",
@@ -78,8 +89,9 @@ router.post('/:clubId', async (req, res, next) => {
                 userId:managers[i].userId
             },{transaction:transaction});
         }
+
         await transaction.commit()
-        res.send(applicationform);
+        res.status(200).send(applicationform);
     } catch (err) {
         if(transaction) await transaction.rollback()
         console.error(err);
@@ -92,31 +104,41 @@ router.patch('/:applicationFormId/approve',async(req,res,next)=>{
     let transaction;
     try{
         transaction = await ApplicationForm.sequelize.transaction()
+
         const applicationForm = await ApplicationForm.findOne({
-            where:{id:req.params.applicationFormId,isApproved:false},transaction:transaction
+            where:{id:req.params.applicationFormId,isApproved:false},
+            transaction:transaction
         });
         applicationForm.isApproved = true;
         await applicationForm.save({transaction:transaction});
+
+        //유저 가입
         const result = await Club_user.create({
             userId:applicationForm.userId,
             clubId:applicationForm.clubId,
             nickname:applicationForm.nickname,
         },{transaction:transaction});
+
+        //동아리원 수 +1
         const club = await Club.findOne({
             where:{id:applicationForm.clubId},transaction:transaction
         });
         club.memberCount += 1;
         await club.save({transaction:transaction});
+
+        //알람
         await Alarm.create({
             content:"동아리에 가입되었습니다.",
             clubId:applicationForm.clubId,
             userId:applicationForm.userId
         },{transaction:transaction});
+
         await transaction.commit()
+
         if(result)
-            res.send(true)
+            res.status(200).send(true);
         else
-            res.send(false) 
+            res.status(204).send();
     }catch(err){
         if(transaction) await transaction.rollback()
         console.error(err);
@@ -130,16 +152,21 @@ router.delete('/:applicationFormId',async(req,res,next)=>{
     try{
         transaction = await ApplicationForm.sequelize.transaction();
         var deleteForm = await ApplicationForm.findOne({
-            where:{id:req.params.applicationFormId}
+            where:{id:req.params.applicationFormId},
+            transaction:transaction
         });
         await Alarm.create({
             content:"가입신청이 거부되었습니다.",
             clubId:deleteForm.clubId,
             userId:deleteForm.userId
         },{transaction:transaction});
-        await deleteForm.destroy({transaction:transaction});
+        const result = await deleteForm.destroy({transaction:transaction});
         await transaction.commit()
-        res.send(deleteRow(1));
+        
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);

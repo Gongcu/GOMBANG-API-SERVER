@@ -35,8 +35,12 @@ router.get('/event',async(req,res,next)=>{
             `p.title, p.color, p.startDate, p.endDate, p.place, p.memo, p.createdAt,COALESCE(l.count,0) as likeCount,COALESCE(c.count,0) as commentCount ` +
             `FROM posts p left join (select postId, count(*) count from likes group by postId) l on p.id=l.postId left join (select postId, count(*) count from comments group by postId) c on p.id=c.postId join users u on p.userId = u.id ` +
             `WHERE p.isEvent=true`
-        )   
-        res.send(post[0]);
+        );
+        if(post[0].length)
+            res.status(200).send(post[0]);
+        else
+            res.status(204).send();
+
     }catch(err){
         console.error(err);
         next(err);
@@ -51,7 +55,10 @@ router.get('/:clubId',async(req,res,next)=>{
             `FROM posts p left join (select postId, count(*) count from likes group by postId) l on p.id=l.postId left join (select postId, count(*) count from comments group by postId) c on p.id=c.postId join users u on p.userId = u.id ` +
             `WHERE p.clubId=${req.params.clubId}`
         )   
-        res.send(post[0]);
+        if(post[0].length)
+            res.status(200).send(post[0]);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -66,29 +73,32 @@ router.get('/:postId/detail',async(req,res,next)=>{
             where:{id:req.params.postId},
             raw:true
         });
-        var files = await File.sequelize.query(
-            `SELECT type, name `+
-            `FROM files WHERE postId=${req.params.postId}`
-        )
-        var likes = await Like.sequelize.query(
-            `SELECT u.id, u.name, u.image `+
-            `FROM likes l join users u on l.userId=u.id WHERE l.postId=${req.params.postId}`
-        )
-        var comments = await Comment.sequelize.query(
-            `SELECT u.id, u.name, u.image, c.comment, c.createdAt `+
-            `FROM comments c join users u on c.userId=u.id WHERE c.postId=${req.params.postId} order by c.createdAt asc`
-        )
-   
-        var post_participation_users = await Comment.sequelize.query(
-            `SELECT u.id, u.name, u.image, p.payment `+
-            `FROM post_participation_users p join users u on p.userId=u.id WHERE p.postId=${req.params.postId}`
-        )
-        post.Files=files[0];
-        post.likes=likes[0];
-        post.comments=comments[0];
-        post.post_participation_users=post_participation_users[0];
-
-        res.send(post);
+        if(post){
+            var files = await File.sequelize.query(
+                `SELECT type, name `+
+                `FROM files WHERE postId=${req.params.postId}`
+            )
+            var likes = await Like.sequelize.query(
+                `SELECT u.id, u.name, u.image `+
+                `FROM likes l join users u on l.userId=u.id WHERE l.postId=${req.params.postId}`
+            )
+            var comments = await Comment.sequelize.query(
+                `SELECT u.id, u.name, u.image, c.comment, c.createdAt `+
+                `FROM comments c join users u on c.userId=u.id WHERE c.postId=${req.params.postId} order by c.createdAt asc`
+            )
+       
+            var post_participation_users = await Comment.sequelize.query(
+                `SELECT u.id, u.name, u.image, p.payment `+
+                `FROM post_participation_users p join users u on p.userId=u.id WHERE p.postId=${req.params.postId}`
+            )
+            post.Files=files[0];
+            post.likes=likes[0];
+            post.comments=comments[0];
+            post.post_participation_users=post_participation_users[0];
+    
+            res.status(200).send(post);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -103,7 +113,10 @@ router.get('/:postId/comment',async(req,res,next)=>{
             `SELECT u.id, u.name, u.image, c.comment, c.createdAt `+
             `FROM comments c join users u on c.userId=u.id WHERE c.postId=${req.params.postId} order by c.createdAt asc`
         )
-        res.send(comments[0]);
+        if(comments[0].length){
+            res.status(200).send(comments[0]);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -145,9 +158,9 @@ router.get('/:postId/participation/export',async(req,res,next)=>{
         sheet.getRow(i+4).font = {bold:true} //납부자 수
 
         workbook.xlsx.writeFile(appDir+'/excel/'+filename).then(_=>{
-            res.send(filename);
+            res.status(200).send(filename);
         }).catch((error)=>{
-            console.log(error);
+            next(error);
         })
     }catch(err){
         console.error(err);
@@ -206,7 +219,7 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
             }
         }
         await transaction.commit();
-        res.send(result);
+        res.status(200).send(result);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -267,7 +280,7 @@ router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image
             },{transaction:transaction});
         }
         await transaction.commit();
-        res.send(result);
+        res.status(200).send(result);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -282,17 +295,20 @@ router.post('/:postId/comment',async(req,res,next)=>{
         transaction = await Comment.sequelize.transaction();
         //1. content에 사용될 name 추출
         const post = await Post.findOne({
-            where:{id:req.params.postId},transaction:transaction
+            where:{id:req.params.postId},
+            transaction:transaction
         })
         let name;
         if(post.isEvent){
             const user = await User.findOne({
-                where:{id:req.body.userId},attributes:['name'],transaction:transaction
+                where:{id:req.body.userId},attributes:['name'],
+                transaction:transaction
             });
             name=user.name;
         }else{
             const club_user = await Club_user.findOne({
-                where:{userId:req.body.userId},attributes:['nickname'],transaction:transaction
+                where:{userId:req.body.userId},attributes:['nickname'],
+                transaction:transaction
             })
             name=club_user.nickname;
         }
@@ -332,7 +348,7 @@ router.post('/:postId/comment',async(req,res,next)=>{
                 clubId: post.clubId
             }, { transaction: transaction })
         await transaction.commit();
-        res.send(comment);
+        res.status(200).send(comment);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -347,7 +363,7 @@ router.patch('/:postId',uploader.fields([{name:'banner'},{name:'file'},{name:'im
     try{
         //(글 수정 -> 파일 DB 삭제 후 추가)->성공 시 스토리지의 이전 게시글 파일 삭제 
         transaction = await Post.sequelize.transaction();
-        await Post.update({
+        const post = await Post.update({
             isNotice:req.body.isNotice,
             isEvent:req.body.isEvent,
             text: req.body.text,
@@ -361,6 +377,7 @@ router.patch('/:postId',uploader.fields([{name:'banner'},{name:'file'},{name:'im
         },{
             where:{id:req.params.postId},transaction:transaction
         });
+        if(!updateRow(post).result) throw new Error(`Error:No post id:${req.params.postId}`);
         const prevFiles = await File.findAll({where:{postId:req.params.postId},transaction:transaction})
         await File.destroy({
             where:{postId:req.params.postId},transaction:transaction
@@ -385,7 +402,7 @@ router.patch('/:postId',uploader.fields([{name:'banner'},{name:'file'},{name:'im
                 for(var i=0; i<req.files['video'].length; i++)
                     await File.create({postId:req.params.postId,type:"video",name:req.files['video'][i].filename},{transaction:transaction})
             }
-        })
+        });
         const result = await Post.findOne({
             where:{id:req.params.postId},
             include:[{
@@ -398,7 +415,7 @@ router.patch('/:postId',uploader.fields([{name:'banner'},{name:'file'},{name:'im
                 console.log(err);
             });
         }
-        res.send(result);
+        res.status(200).send(result);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -413,9 +430,9 @@ router.patch('/comment/:commentId',async(req,res,next)=>{
         if(comment){
             comment.comment = req.body.comment;
             await comment.save();
-            res.send(comment);
+            res.status(200).send(comment);
         }else{
-            res.send(updateRow(0))
+            res.status(204).send();
         }
     }catch(err){
         console.error(err);
@@ -430,12 +447,12 @@ router.patch('/:postId/like', async (req, res, next) => {
             where: { postId: req.params.postId, userId: req.body.userId }
         }).then(async (result) => {
             if(result[1]){
-                res.send("on")
+                res.status(200).send(true)
             }else{
                 await Like.destroy({
                     where: { postId: req.params.postId, userId: req.body.userId }
-                })
-                res.send("off")
+                });
+                res.status(200).send(false)
             }
         })
     } catch (err) {
@@ -451,12 +468,12 @@ router.patch('/:postId/participation',async(req,res,next)=>{
             where: { postId: req.params.postId, userId: req.body.userId }
         }).then(async (result) => {
             if(result[1]){
-                res.send("on")
+                res.status(200).send(true)
             }else{
                 await Post_participation_user.destroy({
                     where: { postId: req.params.postId, userId: req.body.userId }
                 })
-                res.send("off")
+                res.status(200).send(false)
             }
         })
     } catch (err) {
@@ -471,12 +488,16 @@ router.patch('/:postId/paid',async(req,res,next)=>{
         const user = await Post_participation_user.findOne({
             where: { postId: req.params.postId, userId: req.body.userId }
         });
-        user.payment = !user.payment;
-        await user.save();
-        if(user.payment)
-            res.send("on");
-        else
-            res.send("off");
+        if(user){
+            user.payment = !user.payment;
+            await user.save();
+            if(user.payment)
+                res.status(200).send(true)
+            else
+                res.status(200).send(false)
+        }else{
+            res.status(204).send();
+        }    
     }catch(err){
         console.error(err);
         next(err);
@@ -498,7 +519,10 @@ router.delete('/:postId',async(req,res,next)=>{
         const result = await Post.destroy({
             where:{id:req.params.postId}
         })
-        res.send(deleteRow(result))
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -511,7 +535,10 @@ router.delete('/comment/:commentId',async(req,res,next)=>{
         const result = await Comment.destroy({
             where:{id:req.params.commentId}
         })
-        res.send(deleteRow(result))
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);

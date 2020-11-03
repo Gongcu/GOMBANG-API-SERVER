@@ -11,11 +11,14 @@ var appDir = path.dirname(require.main.filename);
 router.patch('/token',async(req,res,next)=>{
     try{
         const result = await User.update({
-           token:req.body.token},
-           {
-            where:{kakaoId:req.body.kakaoId}
+            token:req.body.token
+        },
+            {where:{kakaoId:req.body.kakaoId}
         });
-        res.send(updateRow(result));
+        if(updateRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -55,11 +58,17 @@ router.get('/mail/:studentNumber', async(req, res) => {
     transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
             console.log(error);
+            next(error);
+        }else{
+            res.status(200).send(authNum);
         }
-        console.log("Finish sending email : " + info.response);
-        res.send(authNum);
         transporter.close()
     });
+});
+
+// error handler
+router.use(function (err, req, res, next) {
+    res.status(400).send({Error:err.message});
 });
 
 module.exports=router;

@@ -21,38 +21,17 @@ router.get('/:clubId',async(req,res,next)=>{
                     model:User
                 }]
             }]
-        })
-        res.send(chatroom);
+        });
+        if(chatroom.length)
+            res.status(200).send(chatroom);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//해당 동아리에서 유저가 참여하는 모든 채팅방 리스트 추출
-router.get('/:clubId/:userId',async(req,res,next)=>{
-    try{
-        const chatroom = await Chatroom.sequelize.query(`
-            select c.name as clubName, cr.id as chatroomId, cr.name as chatroomName  
-            from chatroom_users cu join chatrooms cr on cr.id=cu.chatroomId join clubs c on cr.clubId=c.id 
-            where userId=${req.params.userId} AND clubId=${req.params.clubId};`
-        )
-        var list = chatroom[0];
-        const obj = new Object();
-        for(var i=0; i<list.length; i++){
-            var clubName = list[i].clubName
-            if(typeof obj[clubName] == 'undefined'){
-                obj[clubName] =[list[i]]
-            }else{
-                obj[clubName].push(list[i]);
-            }
-        }
-        res.send(obj);
-    }catch(err){
-        console.error(err);
-        next(err);
-    }
-});
 
 //채팅방 슬라이드 버튼 - 사진첩, 사진이름 반환 (테스트 필요)
 router.get('/:chatroomId/gallery', async (req, res, next) => {
@@ -60,7 +39,11 @@ router.get('/:chatroomId/gallery', async (req, res, next) => {
         const images = await File.sequelize.query('SELECT f.name FROM '+
         'chatrooms cr join chats c on cr.id=c.chatroomId join on files f c.id=f.chatId '+
         `where cr.id=${req.params.chatroomId}`);
-        res.send(images[0]);
+
+        if(images[0].length)
+            res.status(200).send(images[0]);
+        else
+            res.status(204).send();
     } catch (err) {
         console.error(err);
         next(err);
@@ -74,7 +57,11 @@ router.get('/:chatroomId/chat',async(req,res,next)=>{
             `SELECT c.id, c.message, c.createdAt, c.userId, u.token, u.name, u.image,COALESCE(cur.count,0) as count `+
             `FROM chats c left join (select chatId,count(id) as count from chat_unread_users where chatroomId=${req.params.chatroomId} group by chatId) cur on c.id=cur.chatId join users u on c.userId=u.id `+
             `WHERE c.chatroomId=${req.params.chatroomId} order by c.id`);
-        res.send(chat[0]);
+
+        if(chat[0].length)
+            res.status(200).send(chat[0]);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -82,19 +69,45 @@ router.get('/:chatroomId/chat',async(req,res,next)=>{
 });
 
 //채팅방 슬라이드 버튼 - 참여중인 유저 목록, 유저 목록 반환@
-router.get('/:chatroomId/users', async (req, res, next) => {
+router.get('/:chatroomId/user', async (req, res, next) => {
     try {
-        const users = await Chatroom_user.sequelize.query('SELECT u.name, u.image FROM '+
+        const user = await Chatroom_user.sequelize.query('SELECT u.name, u.image FROM '+
         'chatroom_users cu join users u on cu.userId=u.id '+
         `where cu.chatroomId=${req.params.chatroomId}`);
-        res.send(users[0]);
+        
+        if(user[0].length)
+            res.status(200).send(user[0]);
+        else
+            res.status(204).send();
     } catch (err) {
         console.error(err);
         next(err);
     }
 });
+
+//해당 동아리에서 유저가 참여하는 모든 채팅방 리스트 추출
+router.get('/:clubId/:userId',async(req,res,next)=>{
+    try{
+        const chatroom = await Chatroom.sequelize.query(`
+            select cr.id, cr.name  
+            from chatroom_users cu join chatrooms cr on cr.id=cu.chatroomId join clubs c on cr.clubId=c.id 
+            where cu.userId=${req.params.userId} AND cr.clubId=${req.params.clubId};`
+        )
+        
+        if(chatroom[0].length)
+            res.status(200).send(chatroom[0]);
+        else
+            res.status(204).send();
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
+
+
+
 //채팅방 입장할 경우. 읽음표시, 채팅반환, body-userId,params -chatroomid
-router.get('/:chatroomId/enter/:userId', async (req, res, next) => {
+router.get('/:chatroomId/:userId/enter', async (req, res, next) => {
     let transaction;
     try {
         var chat;
@@ -110,9 +123,11 @@ router.get('/:chatroomId/enter/:userId', async (req, res, next) => {
         })
         await transaction.commit();
         req.app.get('io').sockets.in(req.params.chatroomId).emit('join', chat[0]);
-        res.send(chat[0]);
 
-
+        if(chat[0])
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     } catch (err) {
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -125,11 +140,15 @@ router.get('/:chatroomId/enter/:userId', async (req, res, next) => {
 //새로운 메시지에 대한 점멸등과 새로운 메시지 개수 (테스트 필요)
 router.get('/:clubId/:userId/flasher',async(req,res,next)=>{
     try{
-        const result = await Chat_unread_user.sequelize.query(`select chatroomId, count(id) as count `+
-        `from chat_unread_users cur join chatrooms c on cur.chatroomId=c.id `
-        `where cur.userId=${req.params.userId} and c.clubId=${req.params.clubId}`
-        `group by cur.chatroomId;`)
-        res.send(result);
+        const result = await Chat_unread_user.sequelize.query(`SELECT cur.chatroomId, count(cur.id) as count `+
+        `FROM chat_unread_users cur join chatrooms c on cur.chatroomId=c.id `+
+        `WHERE cur.userId=${req.params.userId} and c.clubId=${req.params.clubId} `+
+        `GROUP BY cur.chatroomId;`)
+
+        if(result[0].length)
+            res.status(200).send(result[0]);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -151,7 +170,7 @@ router.post('/',async(req,res,next)=>{
         }
         await Chatroom_user.bulkCreate(userlist,{transaction:transaction});
         await transaction.commit();
-        res.send(chatroom);
+        res.status(200).send(chatroom);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -178,10 +197,12 @@ router.post('/:chatroomId/chat', async (req, res, next) => {
             userId: req.body.userId,
             message: req.body.message,
         });
+
         const user = await Chatroom_user.sequelize.query(
             `select c.userId from chatroom_users c left outer join chatroom_con_users ccu on c.userId = ccu.userId `+
             `where ccu.id is null and c.chatroomId=${req.params.chatroomId}`
         )
+
         for (var i = 0; i < user[0].length; i++)
             await Chat_unread_user.create({ userId: user[0][i].userId, chatId: chat.id, chatroomId: req.params.chatroomId })
         //병렬 처리, user[0].length => count, 
@@ -190,6 +211,11 @@ router.post('/:chatroomId/chat', async (req, res, next) => {
             `WHERE c.id=${chat.id}`)
         await transaction.commit();
         req.app.get('io').sockets.in(req.params.chatroomId).emit('new message', msg[0][0]);
+
+        if(msg[0][0])
+            res.status(200).send(true)
+        else
+            res.status(204).send()
     } catch (err) {
         if(transaction)
             await transaction.rollback();
@@ -197,6 +223,54 @@ router.post('/:chatroomId/chat', async (req, res, next) => {
         next(err);
     }
 });
+
+/*
+//POSTMAN: 채팅보내기-이미지,파일,동영상 포함 (테스트 필요)
+router.post('/:chatroomId/chat',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),async(req,res,next)=>{
+    let transaction;
+    try{
+        transaction = await Post.sequelize.transaction();
+        const chat = await Chat.create({
+            chatroomId: req.body.chatroomId,
+            userId: req.body.userId,
+            message: req.body.message,
+        });
+        if(typeof req.files['file']!='undefined'){
+            for(var i=0; i<req.files['file'].length; i++)
+                await File.create({chatId:chat.id,type:"file",name:req.files['file'][i].filename},{transaction:transaction})
+        }
+        if(typeof req.files['image']!='undefined'){
+            for(var i=0; i<req.files['image'].length; i++)
+                await File.create({chatId:chat.id,type:"image",name:req.files['image'][i].filename},{transaction:transaction})
+        }
+        if(typeof req.files['video']!='undefined'){
+            for(var i=0; i<req.files['video'].length; i++)
+                await File.create({chatId:chat.id,type:"video",name:req.files['video'][i].filename},{transaction:transaction})
+        }
+        //실시간 채팅에 참여하지 않은 유저만 추출
+        const user = await Chatroom_user.sequelize.query(
+            `select c.userId from chatroom_users c left outer join chatroom_con_users ccu on c.userId = ccu.userId `+
+            `where ccu.id is null and c.chatroomId=${req.body.chatroomId}`
+        )
+        //해당 유저들 읽지 않음 처리.
+        for (var i = 0; i < user[0].length; i++)
+            await Chat_unread_user.create({ userId: user[0][i].userId, chatId: chat.id, chatroomId: req.body.chatroomId })
+        await transaction.commit();
+
+        //해당 채팅방에 new message 소켓 이벤트 발생
+        req.app.get('io').sockets.in(req.body.chatroomId).emit('new message', chat.id);
+
+        if(chat)
+            res.status(200).send(true)
+        else
+            res.status(204).send()
+    }catch(err){
+        if(transaction) await transaction.rollback();
+        console.error(err);
+        next(err);
+    }
+});
+*/
 
 //POSTMAN: 채팅방에 유저 초대@
 router.post('/:chatroomId/invite',async(req,res,next)=>{
@@ -209,10 +283,11 @@ router.post('/:chatroomId/invite',async(req,res,next)=>{
             await Chatroom_user.findOrCreate({where:{chatroomId:req.params.chatroomId, userId:userlist[i]},transaction:transaction});
         }
         await transaction.commit();
+
         if(i===userlist.length)
-            res.send(updateRow(1));
+            res.status(200).send(true);
         else
-            res.send(updateRow(0));
+            res.status(204).send();
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -228,7 +303,11 @@ router.patch('/:chatroomId/name',async(req,res,next)=>{
         });
         chatroom.name = req.body.name;
         await chatroom.save();
-        res.send(chatroom);
+        
+        if(chatroom)
+            res.status(200).send(chatroom);
+        else
+            res.status(204).send();
     }catch(err){
 
         console.error(err);
@@ -245,7 +324,11 @@ router.patch('/:chatroomId/:userId/alarm',async(req,res,next)=>{
         });
         user.alarm = !user.alarm;
         await user.save();
-        res.send(user.alarm);
+        
+        if(user)
+            res.status(200).send(user.alarm);
+        else
+            res.status(204).send();
     }catch(err){
 
         console.error(err);
@@ -259,7 +342,10 @@ router.delete('/:chatroomId/:userId/leave',async(req,res,next)=>{
         const result = await Chatroom_con_user.destroy({
             where:{chatroomId:req.params.chatroomId,userId:req.params.userId}
         })
-        res.send(deleteRow(result));
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -278,7 +364,11 @@ router.delete('/:chatroomId/:userId/delete',async(req,res,next)=>{
             where:{chatroomId:req.params.chatroomId,userId:req.params.userId},transaction:transaction
         })
         await transaction.commit();
-        res.send(deleteRow(result));
+        
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         if(transaction)
             await transaction.rollback();
@@ -286,6 +376,8 @@ router.delete('/:chatroomId/:userId/delete',async(req,res,next)=>{
         next(err);
     }
 });
+
+
 
 
 module.exports = router;

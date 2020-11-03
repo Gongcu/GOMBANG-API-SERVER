@@ -4,7 +4,6 @@ const _ = require('underscore')
 const Club = require('../models/club');
 const Club_hashtag= require('../models/club_hashtag');
 const Hashtag= require('../models/hashtag');
-const path = require('path');
 const router = express.Router();
 
 //POSTMAN: 일반 검색으로 동아리 검색. -> 해시태그 결과, 동아리명 결과 둘다 출력
@@ -35,7 +34,10 @@ router.get('/:query', async (req, res, next) => {
         clubList  = clubList.filter(function(item) { //NULL요소 제거
             return item !== null && item !== undefined && item !== '';
           });
-        res.send(clubList);
+        if(clubList)
+            res.status(200).send(clubList);
+        else
+            res.status(204).send();
     } catch (err) {
         console.error(err);
         next(err);
@@ -61,8 +63,11 @@ router.get('/hashtag/:hashtag',async(req,res,next)=>{
         clubList = _.uniq(clubList, 'id'); //중복 제거
         clubList  = clubList.filter(function(item) { //NULL요소 제거
             return item !== null && item !== undefined && item !== '';
-          });
-        res.send(clubList);
+        });
+        if(clubList)
+            res.status(200).send(clubList);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);

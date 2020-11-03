@@ -8,12 +8,11 @@ module.exports = function(server){
 
         socket.on('new message', (data) => {
             var item = {
-                uid:data.uid,
+                userId:data.userId,
                 message:data.message,
                 createdAt:data.createdAt
             }
             io.sockets.in(data.room).emit('new message', item);
-            console.log(data);
         });
     
       });

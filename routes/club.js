@@ -1,6 +1,7 @@
 const express = require('express');
 const deleteRow = require('../etc/deleteRow.js');
 const updateRow = require('../etc/updateRow.js');
+const Post = require('../models/post');
 const Club = require('../models/club');
 const Club_user = require('../models/club_user');
 const Club_hashtag= require('../models/club_hashtag');
@@ -20,9 +21,7 @@ const uploader = multer({
     limits: {fileSize: 5*1024*1024},
 });
 const fs = require('fs');
-const { raw } = require('express');
 var appDir = path.dirname(require.main.filename);
-
 const router = express.Router();
 
 //POSTMAN 검색탭의 동아리 리스트@
@@ -38,7 +37,10 @@ router.get('/',async(req,res,next)=>{
             )
             club[i].hashtags=hashtags[0];
         }
-        res.send(club);
+        if(club.length)
+            res.status(200).send(club);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -49,14 +51,18 @@ router.get('/',async(req,res,next)=>{
 router.get('/:clubId',async(req,res,next)=>{
     try{
         var club = await Club.findOne({
+            where:{id:req.params.clubId},
             raw:true
         });
-        var hashtags = await Club_hashtag.sequelize.query(
+        if(club){
+            var hashtags = await Club_hashtag.sequelize.query(
                 `SELECT ch.hashtagId, h.hashtag `+
                 `FROM club_hashtags ch join hashtags h on ch.hashtagId=h.id WHERE ch.clubId=${req.params.clubId}`
-        )
-        club.hashtags=hashtags[0];
-        res.send(club);
+            )
+            club.hashtags=hashtags[0];
+            res.status(200).send(club);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -70,14 +76,18 @@ router.get('/campus/:campus',async(req,res,next)=>{
             where:{campus:req.params.campus},
             raw:true
         });
-        for(var i=0; i<club.length; i++){
-            var hashtags = await Club_hashtag.sequelize.query(
-                `SELECT ch.hashtagId, h.hashtag `+
-                `FROM club_hashtags ch join hashtags h on ch.hashtagId=h.id WHERE ch.clubId=${club[i].id}`
-            )
-            club[i].hashtags=hashtags[0];
+        if(club.length){
+            for(var i=0; i<club.length; i++){
+                var hashtags = await Club_hashtag.sequelize.query(
+                    `SELECT ch.hashtagId, h.hashtag `+
+                    `FROM club_hashtags ch join hashtags h on ch.hashtagId=h.id WHERE ch.clubId=${club[i].id}`
+                )
+                club[i].hashtags=hashtags[0];
+            }
+            res.status(200).send(club);
+        }else{
+            res.status(204).send();
         }
-        res.send(club);
     }catch(err){
         console.error(err);
         next(err);
@@ -89,7 +99,10 @@ router.get('/:clubId/:userId/mypost/',async(req,res,next)=>{
         const post = await Post.findAll({
             where:{userId:req.params.userId, clubId:req.params.clubId}
         });
-        res.send(post);
+        if(post.length)
+            res.status(200).send(post);
+        else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -104,7 +117,11 @@ router.get('/:clubId/member',async(req,res,next)=>{
             `SELECT c.userId, u.name, u.image, u.studentNumber, c.nickname, c.authority `+
             `FROM club_users c join users u on c.userId=u.id WHERE c.clubId=${req.params.clubId}`
         )
-        res.send(member[0]);
+        if(member[0].length){
+            res.status(200).send(member[0]);
+        }else{
+            res.status(204).send();
+        }
     }catch(err){
         console.error(err);
         next(err);
@@ -118,7 +135,11 @@ router.get('/:clubId/manager',async(req,res,next)=>{
             `SELECT c.userId, u.name, u.image, u.studentNumber, c.nickname, c.authority `+
             `FROM club_users c join users u on c.userId=u.id WHERE c.clubId=${req.params.clubId} AND c.authority NOT LIKE '멤버' `
         )
-         res.send(manager[0]);
+        if(manager[0].length){
+            res.status(200).send(manager[0]);
+        }else{
+            res.status(204).send();
+        }
     }catch(err){
         console.error(err);
         next(err);
@@ -140,7 +161,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 type: req.body.type,
                 classification: req.body.classification,
                 memberCount: 1,
-            }, {transaction});
+            },{transaction:transaction});
         } else {
             club = await Club.create({
                 name: req.body.name,
@@ -149,7 +170,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 type: req.body.type,
                 classification: req.body.classification,
                 memberCount: 1,
-            }, {transaction});
+            }, {transaction:transaction});
         }
 
         await Club_user.create({
@@ -157,7 +178,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
             clubId: club.id,
             authority: '회장',
             nickname: req.body.name + ' 회장'
-        },{transaction})
+        }, {transaction:transaction});
 
         if (typeof req.body.hashtags != 'undefined') {
             var items = req.body.hashtags.split(',');
@@ -165,7 +186,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
                 const [hashtag,created] = await Hashtag.findOrCreate({
                     where:{hashtag:items[i]},transaction:transaction
                 })
-                await Club_hashtag.create({ clubId: club.id, hashtagId: hashtag.id },{transaction});
+                await Club_hashtag.create({ clubId: club.id, hashtagId: hashtag.id }, {transaction:transaction});
             }    
         }
         await transaction.commit();
@@ -183,20 +204,19 @@ router.patch('/:clubId/profile',uploader.single('image'),async(req,res,next)=>{
     try{
         transaction = await Club.sequelize.transaction()
         var club = await Club.findOne({where:{id:req.params.clubId},transaction:transaction});
+        let prevImageFile = club.image;
 
-        if(req.file){
-            //이전 이미지 삭제
-            fs.unlink(appDir + '/upload/' + club.image, (err) => {
-                console.log(err);
-            });
+        if(req.file)
             club.image = req.file.filename;
-        }
+        else
+            club.image = "";
+        
         club.text = req.body.text;
         club.nicknameRule= req.body.nicknameRule;
         club.membershipFee=req.body.membershipFee;
         await club.save({transaction:transaction});
 
-        //해시태그 업데이트
+        //해시태그 업데이트(기존 해시태그 삭제 -> 새 해시태그 추가)
         await Club_hashtag.destroy({
             where:{clubId:req.params.clubId},transaction:transaction
         });
@@ -217,7 +237,12 @@ router.patch('/:clubId/profile',uploader.single('image'),async(req,res,next)=>{
         );
         club.hashtags=hashtags[0];
 
-        await transaction.commit();
+        await transaction.commit().then(()=>{
+            if(prevImageFile!="")
+                fs.unlink(appDir + '/upload/' + club.image, (err) => {
+                    console.log(err);
+                });
+        });
         res.status(200).send(club);
     }catch(err){
         if(transaction) await transaction.rollback();
@@ -234,7 +259,10 @@ router.patch('/:clubId/nickname', async (req, res, next) => {
         }, {
             where: { clubId: req.params.clubId, userId: req.body.userId }
         })
-        res.send(updateRow(result));
+        if(updateRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     } catch (err) {
         console.error(err);
         next(err);
@@ -244,10 +272,13 @@ router.patch('/:clubId/nickname', async (req, res, next) => {
 //POSTMAN: 모집 상태 전환@
 router.patch('/:clubId/recruitment',async(req,res,next)=>{
     try{
-        const club = await Club.findOne({id:req.params.clubId})
-        club.recruitment = !(club.recruitment);
-        await club.save();
-        res.send(club.recruitment);
+        const club = await Club.findOne({where:{id:req.params.clubId}});
+        if(club){
+            club.recruitment = !(club.recruitment);
+            await club.save();
+            res.status(200).send(club.recruitment);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -258,10 +289,13 @@ router.patch('/:clubId/recruitment',async(req,res,next)=>{
 //POSTMAN: 피드 공개/비공개 전환@
 router.patch('/:clubId/exposure/feed',async(req,res,next)=>{
     try{
-        const club = await Club.findOne({id:req.params.clubId})
-        club.feedExposure = !(club.feedExposure);
-        await club.save();
-        res.send(club.feedExposure);
+        const club = await Club.findOne({where:{id:req.params.clubId}});
+        if(club){
+            club.feedExposure = !(club.feedExposure);
+            await club.save();
+            res.status(200).send(club.feedExposure);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -270,10 +304,13 @@ router.patch('/:clubId/exposure/feed',async(req,res,next)=>{
 //POSTMAN: 공지사항 공개/비공개 전환@
 router.patch('/:clubId/exposure/notice',async(req,res,next)=>{
     try{
-        const club = await Club.findOne({id:req.params.clubId})
-        club.noticeExposure = !(club.noticeExposure);
-        await club.save();
-        res.send(club.noticeExposure);
+        const club = await Club.findOne({where:{id:req.params.clubId}});
+        if(club){
+            club.noticeExposure = !(club.noticeExposure);
+            await club.save();
+            res.status(200).send(club.noticeExposure);
+        }else
+            res.status(204).send();
     }catch(err){
         console.error(err);
         next(err);
@@ -281,35 +318,55 @@ router.patch('/:clubId/exposure/notice',async(req,res,next)=>{
 });
 
 //POSTMAN:부회장으로 변경@
-router.post('/:clubId/vicepresident',async(req,res,next)=>{
+router.patch('/:clubId/vicepresident',async(req,res,next)=>{
     try{
-        const result = await Club_user.update({
-            authority:'부회장',
-        },{
-            where:{clubId:req.params.clubId,userId:req.body.userId}
-        });
-        res.send(updateRow(result));
+        const user = await Club_user.findOne({where:{clubId:req.params.clubId,userId:req.body.userId}});
+        if(user){
+            user.authority ='부회장';
+            await user.save();
+            res.status(200).send(true);
+        }else{
+            res.status(204).send();
+        }
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
-//POSTMAN:매니저로 변경@
-router.post('/:clubId/manager',async(req,res,next)=>{
+//POSTMAN:관리자로 변경@
+router.patch('/:clubId/manager',async(req,res,next)=>{
     try{
-        const result = await Club_user.update({
-            authority:'관리자',
-        },{
-            where:{clubId:req.params.clubId,userId:req.body.userId}
-        });
-        res.send(updateRow(result));
+        const user = await Club_user.findOne({where:{clubId:req.params.clubId,userId:req.body.userId}});
+        if(user){
+            user.authority ='관리자';
+            await user.save();
+            res.status(200).send(true);
+        }else{
+            res.status(204).send();
+        }
     }catch(err){
         console.error(err);
         next(err);
     }
 });
 
+//POSTMAN:멤버로 변경@
+router.patch('/:clubId/member',async(req,res,next)=>{
+    try{
+        const user = await Club_user.findOne({where:{clubId:req.params.clubId,userId:req.body.userId}});
+        if(user){
+            user.authority ='멤버';
+            await user.save();
+            res.status(200).send(true);
+        }else{
+            res.status(204).send();
+        }
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 
 //POSTMAN: 동아리 삭제@
 router.delete('/:clubId',async(req,res,next)=>{
@@ -318,7 +375,7 @@ router.delete('/:clubId',async(req,res,next)=>{
             where:{id:req.params.clubId}
         });
         if(!club){
-            res.send(deleteRow(0));
+            res.status(204).send();
         }else{
             fs.unlink(appDir+'/upload/'+club.image, (err) => {
                 console.log(err);
@@ -329,7 +386,7 @@ router.delete('/:clubId',async(req,res,next)=>{
             await Club_user.destroy({
                 where:{clubId:req.params.clubId}
             });
-            res.send(deleteRow(result));
+            res.status(200).send(deleteRow(result));
         }
     }catch(err){
         console.error(err);
@@ -344,32 +401,18 @@ router.delete('/:clubId/:userId',async(req,res,next)=>{
     try{
         transaction = await Club_user.sequelize.transaction();
         const result = await Club_user.destroy({
-            where:{userId:req.params.userId, clubId:req.params.clubId}
+            where:{userId:req.params.userId, clubId:req.params.clubId},transaction:transaction
         });
-        const club = await Club.findOne({where:{id:req.params.clubId}});
+        const club = await Club.findOne({where:{id:req.params.clubId},transaction:transaction});
         club.memberCount -=1;
         await club.save({transaction:transaction});
         await transaction.commit();
-        res.send(updateRow(result));
+        if(deleteRow(result).result)
+            res.status(200).send(true);
+        else
+            res.status(204).send();
     }catch(err){
         if(transaction) await transaction.rollback();
-        console.error(err);
-        next(err);
-    }
-});
-
-
-//POSTMAN: 매니저,부회장,회장 해임 -> 일반멤버 변경@
-router.delete('/:clubId/manager/:userId',async(req,res,next)=>{
-    try{
-        const result = await Club_user.update({
-            authority:'멤버'
-            }
-            ,{
-                where:{clubId:req.params.clubId,userId:req.params.userId}
-            })
-        res.send(updateRow(result));
-    }catch(err){
         console.error(err);
         next(err);
     }

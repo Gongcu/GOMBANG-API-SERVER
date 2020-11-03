@@ -19,8 +19,11 @@ router.get('/:clubId',async(req,res,next)=>{
             include:[{
                 model:Answer,
             }]
-        })
-        res.send(question);
+        });
+        if(question.length)
+            res.status(200).send(question);
+        else
+            res.status(204).send();     
     }catch(err){
         console.error(err);
         next(err);
@@ -36,7 +39,10 @@ router.get('/app/:userId',async(req,res,next)=>{
                 model:Answer,
             }]
         })
-        res.send(question);
+        if(question.length)
+            res.status(200).send(question);
+        else
+            res.status(204).send();    
     }catch(err){
         console.error(err);
         next(err);
@@ -56,7 +62,8 @@ router.post('/question',async(req,res,next)=>{
         },{transaction:transaction});
         const managers = await Club_user.findAll({
             where:{clubId:req.body.clubId, authority:{[Sequelize.Op.not]:'멤버'}},
-            attributes:['userId']
+            attributes:['userId'],
+            transaction:transaction
         })
         for(var i=0; i<managers.length; i++){
             await Alarm.create({
@@ -67,7 +74,7 @@ router.post('/question',async(req,res,next)=>{
             },{transaction:transaction});
         }
         await transaction.commit();
-        res.send(question)
+        res.status(200).send(question);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -110,7 +117,8 @@ router.post('/app/question', async (req, res, next) => {
             console.log("Finish sending email : " + info.response);
             transporter.close()
         });
-        res.send(question)
+
+        res.status(200).send(question);
     } catch (err) {
         console.error(err);
         next(err);
@@ -125,19 +133,24 @@ router.post('/answer',async(req,res,next)=>{
         const answer = await Answer.create({
             answer: req.body.answer,
         },{transaction:transaction});
+
         const question = await Question.findOne({
-            where:{id:req.body.questionId},transaction:transaction
+            where:{id:req.body.questionId},
+            transaction:transaction
         });
         question.answerId = answer.id;
         await question.save({transaction:transaction});
+
         await Alarm.create({
             content:"질문에 답변이 작성되었습니다.",
             clubId:question.clubId,
             questionId:req.body.questionId,
             userId:question.userId
         },{transaction:transaction});
+
         await transaction.commit();
-        res.send(answer);
+
+        res.status(200).send(answer);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -152,9 +165,9 @@ router.patch('/question/:questionId',async(req,res,next)=>{
         if(question){
             question.question=req.body.question;
             await question.save();
-            res.send(question);
+            res.status(200).send(question);
         }else{
-            res.send(updateRow(0))
+            res.status(204).send()
         }
     }catch(err){
         console.error(err);
@@ -169,9 +182,9 @@ router.patch('/answer/:answerId',async(req,res,next)=>{
         if(answer){
             answer.answer=req.body.answer;
             await answer.save();
-            res.send(answer);
+            res.status(200).send(answer);
         }else{
-            res.send(updateRow(0))
+            res.status(204).send()
         }
     }catch(err){
         console.error(err);
@@ -185,16 +198,23 @@ router.delete('/question/:questionId',async(req,res,next)=>{
     try{
         transaction = await Question.sequelize.transaction();
         const question = await Question.findOne({
-            where:{id:req.params.questionId}
+            where:{id:req.params.questionId},
+            transaction:transaction
         });
         const result = await Question.destroy({
-            where:{id:req.params.questionId}
+            where:{id:req.params.questionId},
+            transaction:transaction
         });
         await Answer.destroy({
-            where:{id:question.answerId}
+            where:{id:question.answerId},
+            transaction:transaction
         });
         await transaction.commit();
-        res.send(deleteRow(result));
+
+        if(deleteRow(result).result)
+            res.status(200).send(true)
+        else
+            res.status(204).send();
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
@@ -216,7 +236,11 @@ router.delete('/answer/:answerId',async(req,res,next)=>{
             where:{answerId:req.params.answerId}
         })
         await transaction.commit();
-        res.send(deleteRow(result))
+        
+        if(deleteRow(result).result)
+            res.status(200).send(true)
+        else
+            res.status(204).send();
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);
