@@ -28,6 +28,7 @@ const uploader = multer({
     }),
     limits: {fileSize: 5*1024*1024},
 });
+
 //POSTMAN:이벤트 게시글 조회@
 router.get('/event',async(req,res,next)=>{
     try{
@@ -36,11 +37,17 @@ router.get('/event',async(req,res,next)=>{
             `FROM posts p left join (select postId, count(*) count from likes group by postId) l on p.id=l.postId left join (select postId, count(*) count from comments group by postId) c on p.id=c.postId join users u on p.userId = u.id ` +
             `WHERE p.isEvent=true`
         );
-        if(post[0].length)
+        if(post[0].length){
+            for(var i=0; i<post[0].length; i++){
+                const files = await File.sequelize.query(
+                    `SELECT type, name `+
+                    `FROM files WHERE postId=${post[0][i].id}`
+                );
+                post[0][i].Files = files
+            }
             res.status(200).send(post[0]);
-        else
+        }else
             res.status(204).send();
-
     }catch(err){
         console.error(err);
         next(err);
@@ -53,11 +60,20 @@ router.get('/:clubId',async(req,res,next)=>{
         const post = await Post.sequelize.query(`SELECT p.id, u.id userId,u.name , u.image, p.isNotice, p.isEvent, p.text, p.participationFee, `+
             `p.title, p.color, p.startDate, p.endDate, p.place, p.memo, p.createdAt,COALESCE(l.count,0) as like_count,COALESCE(c.count,0) as comment_count ` +
             `FROM posts p left join (select postId, count(*) count from likes group by postId) l on p.id=l.postId left join (select postId, count(*) count from comments group by postId) c on p.id=c.postId join users u on p.userId = u.id ` +
-            `WHERE p.clubId=${req.params.clubId}`
-        )   
-        if(post[0].length)
+            `WHERE p.clubId=${req.params.clubId}`,{raw:true}
+        );
+        
+        
+        if(post[0].length){
+            for(var i=0; i<post[0].length; i++){
+                const files = await File.sequelize.query(
+                    `SELECT type, name `+
+                    `FROM files WHERE postId=${post[0][i].id}`
+                );
+                post[0][i].Files = files
+            }
             res.status(200).send(post[0]);
-        else
+        }else
             res.status(204).send();
     }catch(err){
         console.error(err);
