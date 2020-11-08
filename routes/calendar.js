@@ -1,6 +1,5 @@
 const express = require('express');
 const deleteRow = require('../etc/deleteRow');
-const updateRow = require('../etc/updateRow');
 const Calendar = require('../models/calendar');
 const router = express.Router();
 

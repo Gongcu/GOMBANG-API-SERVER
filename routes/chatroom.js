@@ -7,6 +7,7 @@ const Chatroom_user = require('../models/chatroom_user')
 const Chatroom_con_user = require('../models/chatroom_con_user')
 const Chatroom = require('../models/chatroom')
 const Chat_unread_user = require('../models/chat_unread_user')
+const fcmPushGenerator = require('../fcm/fcmPushGenerator');
 const deleteRow = require('../etc/deleteRow.js');
 const updateRow = require('../etc/updateRow.js');
 
@@ -187,7 +188,7 @@ router.post('/',async(req,res,next)=>{
  * 5. 클라이언트측: 응답으로 해당 채팅을 받고 뷰에 업데이트.
  * 6. 클라이언트 채팅방 퇴장: DB에 해당 유저가 접속이 끝났음을 반영
  */
-//POSTMAN: 채팅 보내기@
+//POSTMAN: 채팅 보내기@ +PUSH
 router.post('/:chatroomId/chat', async (req, res, next) => {
     let transaction;
     try {
@@ -198,19 +199,28 @@ router.post('/:chatroomId/chat', async (req, res, next) => {
             message: req.body.message,
         });
 
+        let token = new Array();
+
+        //채팅 미접속 유저 -> 푸시 알림 대상
         const user = await Chatroom_user.sequelize.query(
-            `select c.userId from chatroom_users c left outer join chatroom_con_users ccu on c.userId = ccu.userId `+
+            `select c.userId, u.token FROM chatroom_users c join users u on c.userId=u.id left outer join chatroom_con_users ccu on c.userId = ccu.userId `+
             `where ccu.id is null and c.chatroomId=${req.params.chatroomId}`
         )
 
-        for (var i = 0; i < user[0].length; i++)
-            await Chat_unread_user.create({ userId: user[0][i].userId, chatId: chat.id, chatroomId: req.params.chatroomId })
+        for (var i = 0; i < user[0].length; i++){
+            token[i]=user[0][i].token;
+            await Chat_unread_user.create({ userId: user[0][i].userId, chatId: chat.id, chatroomId: req.params.chatroomId });
+        }
         //병렬 처리, user[0].length => count, 
         const msg = await Chat.sequelize.query(`SELECT c.id, c.message, c.createdAt, c.userId, u.token, u.name, u.image,${user[0].length} as count ` +
             `FROM chats c join users u on c.userId=u.id ` +
             `WHERE c.id=${chat.id}`)
-        await transaction.commit();
+
         req.app.get('io').sockets.in(req.params.chatroomId).emit('new message', msg[0][0]);
+
+        fcmPushGenerator(token,"새 메시지가 도착했습니다.",req.params.chatroomId,"chatroom");
+
+        await transaction.commit();
 
         if(msg[0][0])
             res.status(200).send(true)

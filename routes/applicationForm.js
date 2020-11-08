@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Club = require('../models/club');
 const Club_user = require('../models/club_user');
+const User = require('../models/user')
 const Alarm = require('../models/alarm');
 const ApplicationForm = require('../models/applicationForm');
-const Sequelize = require('sequelize');
 const deleteRow = require('../etc/deleteRow');
+const fcmPushGenerator = require('../fcm/fcmPushGenerator');
+
 
 //POSTMAN: 해당 동아리로 작성된 가입신청서 목록 조회@
 router.get('/:clubId',async(req,res,next)=>{
@@ -75,20 +77,25 @@ router.post('/:clubId', async (req, res, next) => {
             experience: req.body.experience
         },{transaction:transaction});
 
-        const managers = await Club_user.findAll({
-            where:{clubId:req.params.clubId, authority:{[Sequelize.Op.not]:'멤버'}},
-            attributes:['userId'],
-            transaction:transaction
-        })
+        //PUSH
+        var token = new Array()
+        const managers = await Club_user.sequelize.query(
+            'SELECT u.id, u.token ' +
+            `FROM club_users cu join users u on cu.userId=u.id ` +
+            `WHERE cu.clubId=${req.params.clubId} and cu.authority NOT LIKE '멤버' and u.pushAlarm=true and cu.alarm = true `, { transaction: transaction });
 
-        for(var i=0; i<managers.length; i++){
+        for(var i=0; i<managers[0].length; i++){
+            token[i]=managers[0][i].token
+
             await Alarm.create({
                 content:"새로운 가입 신청서가 작성되었습니다.",
                 clubId:applicationform.clubId,
                 applicationFormId:applicationform.id,
-                userId:managers[i].userId
+                userId:managers[0][i].id
             },{transaction:transaction});
         }
+
+        fcmPushGenerator(token, "새로운 가입 신청서가 작성되었습니다.",applicationform.clubId,"application")
 
         await transaction.commit()
         res.status(200).send(applicationform);
@@ -133,6 +140,16 @@ router.patch('/:applicationFormId/approve',async(req,res,next)=>{
             userId:applicationForm.userId
         },{transaction:transaction});
 
+        //PUSH
+        const user = await User.sequelize.query(
+            `SELECT id, token FROM users WHERE id=${applicationForm.userId} and pushAlarm = true`,
+            {transaction:transaction}
+        )
+
+        var token = new Array()
+        token[0]=user[0][0].token
+        fcmPushGenerator(token, "동아리에 가입되었습니다.",applicationForm.clubId,"club")
+
         await transaction.commit()
 
         if(result)
@@ -161,6 +178,17 @@ router.delete('/:applicationFormId',async(req,res,next)=>{
             userId:deleteForm.userId
         },{transaction:transaction});
         const result = await deleteForm.destroy({transaction:transaction});
+
+        //PUSH
+        const user = await User.sequelize.query(
+            `SELECT id,token FROM users WHERE id=${deleteForm.userId} and pushAlarm = true`,
+            {transaction:transaction}
+        );
+
+        var token = new Array()
+        token[0]=user[0][0].token
+        fcmPushGenerator(token, "가입신청이 거부되었습니다.",deleteForm.clubId,"application")
+
         await transaction.commit()
         
         if(deleteRow(result).result)

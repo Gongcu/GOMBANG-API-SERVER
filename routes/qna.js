@@ -2,12 +2,11 @@ const express = require('express');
 const Question = require('../models/question');
 const Answer = require('../models/answer');
 const Alarm = require('../models/alarm');
-const updateRow = require('../etc/updateRow');
+const User = require('../models/user')
 const deleteRow = require('../etc/deleteRow');
 const nodemailer = require('nodemailer');
 const Club_user = require('../models/club_user');
-const Sequelize = require('sequelize');
-
+const fcmPushGenerator = require('../fcm/fcmPushGenerator')
 const router = express.Router();
 
 
@@ -50,33 +49,44 @@ router.get('/app/:userId',async(req,res,next)=>{
 });
 
 //POSTMAN: 질문 작성@ + PUSH
-router.post('/question',async(req,res,next)=>{
+router.post('/question', async (req, res, next) => {
     let transaction;
-    try{
+    try {
         transaction = await Question.sequelize.transaction();
         const question = await Question.create({
-                clubId: req.body.clubId,
-                userId: req.body.userId,
-                question: req.body.question,
-                //createdAt은 질문 생성시 default 처리
-        },{transaction:transaction});
-        const managers = await Club_user.findAll({
-            where:{clubId:req.body.clubId, authority:{[Sequelize.Op.not]:'멤버'}},
-            attributes:['userId'],
-            transaction:transaction
-        })
-        for(var i=0; i<managers.length; i++){
+            clubId: req.body.clubId,
+            userId: req.body.userId,
+            question: req.body.question,
+            //createdAt은 질문 생성시 default 처리
+        }, { transaction: transaction });
+
+        //PUSH
+        var token = new Array()
+
+        const managers = await Club_user.sequelize.query(
+            'SELECT u.id, u.token ' +
+            `FROM club_users cu join users u on cu.userId=u.id ` +
+            `WHERE cu.clubId=${req.body.clubId} AND cu.authority NOT LIKE '멤버' AND u.pushAlarm = true AND cu.alarm = true`, 
+            { transaction: transaction }
+        );
+
+        for (var i = 0; i < managers[0].length; i++) {
+            token[i] = managers[0][i].token;
             await Alarm.create({
-                content:"새로운 문의사항이 작성되었습니다.",
+                content: "새로운 문의사항이 작성되었습니다.",
                 clubId: req.body.clubId,
-                questionId:question.id,
-                userId:managers[i].userId
-            },{transaction:transaction});
+                questionId: question.id,
+                userId: managers[0][i].id
+            }, { transaction: transaction });
         }
+
+        fcmPushGenerator(token, "새로운 문의사항이 작성되었습니다.", req.body.clubId, "Q&A");
+
         await transaction.commit();
+
         res.status(200).send(question);
-    }catch(err){
-        if(transaction) await transaction.rollback();
+    } catch (err) {
+        if (transaction) await transaction.rollback();
         console.error(err);
         next(err);
     }
@@ -148,8 +158,17 @@ router.post('/answer',async(req,res,next)=>{
             userId:question.userId
         },{transaction:transaction});
 
-        await transaction.commit();
+        //PUSH
+        const user = await User.sequelize.query(
+            `SELECT token FROM users WHERE id=${question.userId} AND pushAlarm=true `,
+            {transaction:transaction}
+        )
 
+        var token = new Array()
+        token[0] = user[0][0].token;
+        fcmPushGenerator(token, "질문에 답변이 작성되었습니다.", question.clubId, "Q&A");
+
+        await transaction.commit();
         res.status(200).send(answer);
     }catch(err){
         if(transaction) await transaction.rollback();

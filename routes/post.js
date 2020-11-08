@@ -13,8 +13,8 @@ const deleteRow = require('../etc/deleteRow.js');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
-const Sequelize = require('sequelize');
 const Club_user = require('../models/club_user');
+const fcmPushGenerator = require('../fcm/fcmPushGenerator')
 var appDir = path.dirname(require.main.filename);
 const uploader = multer({
     storage: multer.diskStorage({
@@ -221,18 +221,25 @@ router.post('/',uploader.fields([{name:'file'},{name:'image'},{name:'video'}]),a
                 model:File,
                 attributes:['name','type']
             }],transaction:transaction});
-        if(post.isNotice){
-            const users = await Club_user.findAll({
-                where:{userId:{[Sequelize.Op.not]:post.userId}}
-            });
-            for(var i=0; i<users.length; i++){
+        if(post.isNotice){//PUSH
+            var token = new Array();
+
+            const users = await User.sequelize.query(
+                `SELECT u.id, u.token FROM club_users cu join users u on cu.userId=u.id `+
+                `WHERE u.id <> ${post.userId} AND cu.clubId=${req.body.clubId} AND u.pushAlarm=true AND cu.alarm = true`,
+                {transaction:transaction}
+            )
+            for(var i=0; i<users[0].length; i++){
+                token[i] = users[0][i].token;
                 await Alarm.create({
-                    userId:users[i].userId,
+                    userId:users[0][i].id,
                     content:"새로운 공지사항이 등록되었습니다.",
                     postId:post.id,
                     clubId:post.clubId
                 },{transaction:transaction});
             }
+
+            fcmPushGenerator(token, "새로운 공지사항이 등록되었습니다.",post.id,"post");
         }
         await transaction.commit();
         res.status(200).send(result);
@@ -284,17 +291,26 @@ router.post('/event',uploader.fields([{name:'banner'},{name:'file'},{name:'image
                 model:File,
                 attributes:['name','type']
             }],transaction:transaction});
-        //작성자 빼고 모두 알람
-        const users = await User.findAll({
-            where:{id:{[Sequelize.Op.not]:req.body.userId}}
-        });
-        for(var i=0; i<users.length; i++){
+        //작성자 빼고 모두 알림 + PUSH
+        var token = new Array()
+
+        const users = await User.sequelize.query(
+            `SELECT id, token FROM users WHERE pushAlarm = true AND id <> ${req.body.userId}`,
+            {transaction:transaction}
+        )
+
+        for(var i=0; i<users[0].length; i++){
+            token[i]=users[0][i].token
+
             await Alarm.create({
-                userId:users[i].id,
+                userId:users[0][i].id,
                 content:"새로운 이벤트가 생성되었습니다.",
                 postId:post.id
             },{transaction:transaction});
         }
+        
+        fcmPushGenerator(token, "새로운 이벤트가 생성되었습니다.",post.id, "post");
+        
         await transaction.commit();
         res.status(200).send(result);
     }catch(err){
@@ -336,18 +352,21 @@ router.post('/:postId/comment',async(req,res,next)=>{
             comment: req.body.comment,
         },{transaction:transaction});
         
+        //PUSH
+        var token = new Array();
 
         //알람 보낼 유저들 선정 - (댓글 작성자/게시글작성자 제외, 게시글 작성자는 아래서 따로 호출하기 때문)
-        const comment_user = await Comment.findAll({
-            where:{postId:req.params.postId, userId:{[Sequelize.Op.not]:post.userId}, userId:{[Sequelize.Op.not]:req.body.userId}},
-            attributes:[[Sequelize.fn('DISTINCT',Sequelize.col('userId')),'userId']],
-            transaction:transaction
-        });
+        const comment_user = await Comment.sequelize.query(
+            `SELECT DISTINCT(u.id) as userId, u.token FROM comments c join users u on c.userId=u.id join club_users cu on u.id=cu.userId `+
+            `WHERE c.postId=${req.params.postId} and c.userId <> ${post.userId} and c.userId <> ${req.body.userId} and u.pushAlarm=true and cu.alarm=true`,
+            {transaction:transaction}
+        )
 
         //알람
-        for(var i=0; i<comment_user.length; i++){
+        for(var i=0; i<comment_user[0].length; i++){
+            token[i]= comment_user[0][i].token;
             await Alarm.create({
-                userId:comment_user[i].userId,
+                userId:comment_user[0][i].userId,
                 content:`${name}님이 게시글에 댓글을 작성했습니다.`,
                 postId:comment.postId,
                 commentId:comment.id,
@@ -355,7 +374,13 @@ router.post('/:postId/comment',async(req,res,next)=>{
             },{transaction:transaction})
         }
         //게시글 작성자에게 알람 - 자신이 댓글단 경우만 제외
-        if (post.userId != comment.userId)
+        if (post.userId != comment.userId){
+            const writer = await User.sequelize.query(
+                `SELECT u.token FROM users u join club_users cu on u.id=cu.userId `+
+                `WHERE u.id=${post.userId} and u.pushAlarm=true and cu.alarm=true and cu.clubId=${post.clubId}`,
+                {transaction:transaction}
+            )
+            token[comment_user[0].length]= writer[0][0].token;
             await Alarm.create({
                 userId: post.userId,
                 content: `${name}님이 게시글에 댓글을 작성했습니다.`,
@@ -363,6 +388,8 @@ router.post('/:postId/comment',async(req,res,next)=>{
                 commentId: comment.id,
                 clubId: post.clubId
             }, { transaction: transaction })
+        }
+        fcmPushGenerator(token,`${name}님이 게시글에 댓글을 작성했습니다.`,comment.id,"comment");
         await transaction.commit();
         res.status(200).send(comment);
     }catch(err){
