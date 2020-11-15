@@ -9,7 +9,7 @@ module.exports = class User extends Sequelize.Model{
                 unique:true,
             },
             token:{
-                type:Sequelize.STRING(100),
+                type:Sequelize.STRING,
                 allowNull:true,
             },
             name:{

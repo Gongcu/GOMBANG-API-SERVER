@@ -182,6 +182,7 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
 
         if (typeof req.body.hashtags != 'undefined') {
             var items = req.body.hashtags.split(',');
+            items = Array.from(new Set(items));//인풋 중복 해시태그 제거
             for (var i = 0; i < items.length; i++){
                 const [hashtag,created] = await Hashtag.findOrCreate({
                     where:{hashtag:items[i]},transaction:transaction
@@ -223,6 +224,7 @@ router.patch('/:clubId/profile',uploader.single('image'),async(req,res,next)=>{
 
         if (typeof req.body.hashtags != 'undefined') {
             var items = req.body.hashtags.split(',');
+            items = Array.from(new Set(items));//인풋 중복 해시태그 제거
             for (var i = 0; i < items.length; i++){
                 const [hashtag,created] = await Hashtag.findOrCreate({
                     where:{hashtag:items[i]},transaction:transaction
