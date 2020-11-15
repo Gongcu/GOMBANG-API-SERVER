@@ -49,11 +49,11 @@ router.get('/:userId',async(req,res,next)=>{
         if(user){
             const favoriteClub = await User_favorite_club.sequelize.query(
                 `SELECT c.id, c.name, c.image, ufc.itemOrder `+
-                `FROM user_favorite_club ufc join clubs c on ufc.clubId=c.id WHERE ufc.userId=${req.params.userId} ORDER BY itemOrder`
+                `FROM user_favorite_club ufc join clubs c on ufc.clubId=c.id WHERE ufc.userId=${user.id} ORDER BY itemOrder`
             );
             const signedClub = await User_favorite_club.sequelize.query(
                 `SELECT c.id, c.name, c.image, cu.nickname, cu.authority, cu.alarm `+
-                `FROM club_users cu join clubs c on cu.clubId=c.id WHERE cu.userId=${req.params.userId}`
+                `FROM club_users cu join clubs c on cu.clubId=c.id WHERE cu.userId=${user.id}`
             );
             user.favoriteClub = favoriteClub[0];
             user.signedClub = signedClub[0];
