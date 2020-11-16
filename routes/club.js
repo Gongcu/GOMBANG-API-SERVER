@@ -200,21 +200,39 @@ router.post('/',uploader.single('image'),async(req,res,next)=>{
 });
 
 //관리자 설정 - 동아리 프로필 설정
-router.patch('/:clubId/profile',uploader.single('image'),async(req,res,next)=>{
+router.patch('/:clubId/profile',uploader.fields([{name:'image'},{name:'backgroundImage'}]),async(req,res,next)=>{
     let transaction;
     try{
         transaction = await Club.sequelize.transaction()
         var club = await Club.findOne({where:{id:req.params.clubId},transaction:transaction});
         let prevImageFile = club.image;
+        let prevBackgroundImageFile = club.backgroundImage;
 
-        if(req.file)
-            club.image = req.file.filename;
-        else
-            club.image = "";
-        
-        club.text = req.body.text;
-        club.nicknameRule= req.body.nicknameRule;
-        club.membershipFee=req.body.membershipFee;
+
+        if(typeof req.files['image']!='undefined')
+            club.image = req.files['image'][0].filename;
+
+        if(typeof req.files['backgroundImage']!='undefined')
+            club.backgroundImage = req.files['backgroundImage'][0].filename;
+
+        if(typeof req.body.name!='undefined')
+            club.name = req.body.name
+
+        if(typeof req.body.campus!='undefined')
+            club.campus = req.body.campus
+
+        if(typeof req.body.type!='undefined')
+            club.type = req.body.type
+
+        if(typeof req.body.classification!='undefined')
+            club.classification = req.body.classification
+
+        if(typeof req.body.nicknameRule!='undefined')
+            club.nicknameRule = req.body.nicknameRule
+
+        if(typeof req.body.membershipFee!='undefined')
+            club.membershipFee = req.body.membershipFee
+
         await club.save({transaction:transaction});
 
         //해시태그 업데이트(기존 해시태그 삭제 -> 새 해시태그 추가)
@@ -241,11 +259,48 @@ router.patch('/:clubId/profile',uploader.single('image'),async(req,res,next)=>{
 
         await transaction.commit().then(()=>{
             if(prevImageFile!="")
-                fs.unlink(appDir + '/upload/' + club.image, (err) => {
+                fs.unlink(appDir + '/upload/' + prevImageFile, (err) => {
+                    console.log(err);
+                });
+            if(prevBackgroundImageFile!="")
+                fs.unlink(appDir + '/upload/' + prevBackgroundImageFile, (err) => {
                     console.log(err);
                 });
         });
         res.status(200).send(club);
+    }catch(err){
+        if(transaction) await transaction.rollback();
+        console.error(err);
+        next(err);
+    }
+});
+
+//관리자 설정 - 동아리 소개글
+router.patch('/:clubId/introduce',uploader.single('poster'),async(req,res,next)=>{
+    let transaction;
+    try{
+        transaction = await Club.sequelize.transaction()
+        var club = await Club.findOne({where:{id:req.params.clubId},transaction:transaction});
+        let prevPoster = club.poster;
+
+        if(req.file)
+            club.poster = req.file.filename;
+        
+        club.text = req.body.text;
+    
+        await club.save({transaction:transaction});
+
+        await transaction.commit().then(()=>{
+            if(prevPoster!="")
+                fs.unlink(appDir + '/upload/' + prevPoster, (err) => {
+                    console.log(err);
+                });
+        });
+        const resJson ={
+            poster:club.poster,
+            text:club.text
+        }
+        res.status(200).send(resJson);
     }catch(err){
         if(transaction) await transaction.rollback();
         console.error(err);

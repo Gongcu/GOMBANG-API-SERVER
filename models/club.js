@@ -8,7 +8,17 @@ module.exports = class Club extends Sequelize.Model{
                 allowNull:false,
             },
             image:{
-                type:Sequelize.STRING(100),
+                type:Sequelize.STRING,
+                allowNull:false,
+                defaultValue:"",
+            },
+            backgroundImage:{
+                type:Sequelize.STRING,
+                allowNull:false,
+                defaultValue:"",
+            },
+            poster:{
+                type:Sequelize.STRING,
                 allowNull:false,
                 defaultValue:"",
             },
@@ -17,7 +27,7 @@ module.exports = class Club extends Sequelize.Model{
                 allowNull:false,
             },
             text:{
-                type:Sequelize.STRING(250),
+                type:Sequelize.STRING,
                 allowNull:true,
                 defaultValue:"",
             },
