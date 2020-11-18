@@ -44,8 +44,12 @@ router.get('/folder/:portfolioFolderId',async(req,res,next)=>{
             where:{id:req.params.portfolioFolderId},raw:true
         });
         if(folder){
-            const post = await Portfolio.findAll({where:{portfolioFolderId:req.params.portfolioFolderId}});
-            folder.portfolio = post;
+            const post = await Portfolio.sequelize.query(
+                `SELECT p.id, f.name `+
+                `FROM portfolios p join files f on p.postId=f.postId `+
+                `WHERE f.type LIKE 'image'`
+            )
+            folder.portfolio = post[0];
             res.status(200).send(folder);
         }else
             res.status(204).send();
