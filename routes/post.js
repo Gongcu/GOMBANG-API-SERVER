@@ -28,7 +28,7 @@ const uploader = multer({
     }),
     limits: {fileSize: 5*1024*1024},
 });
-
+/*
 //POSTMAN:이벤트 게시글 조회@
 router.get('/event',async(req,res,next)=>{
     try{
@@ -53,6 +53,28 @@ router.get('/event',async(req,res,next)=>{
         next(err);
     }
 });
+*/
+//POSTMAN:이벤트 조회@
+router.get('/event',async(req,res,next)=>{
+    let transaction;
+    try{
+        const events = await Post.sequelize.query(`SELECT id FROM posts WHERE isEvent=true`,{transaction:transaction});
+        if(events[0].length){
+            for(var i=0; i<events[0].length; i++){
+                const banner = await File.findOne({
+                    where:{id:events[0][i].id, type:'banner'},
+                    transaction:transaction
+                })
+                events[0][i].banner = banner.name;
+            }
+            res.status(200).send(events[0]);
+        }else
+            res.status(204).send();
+    }catch(err){
+        console.error(err);
+        next(err);
+    }
+});
 
 //POSTMAN:특정 동아리의 게시글 조회@
 router.get('/:clubId',async(req,res,next)=>{
@@ -63,7 +85,7 @@ router.get('/:clubId',async(req,res,next)=>{
             `WHERE p.clubId=${req.params.clubId}`,{raw:true}
         );
         
-        
+
         if(post[0].length){
             for(var i=0; i<post[0].length; i++){
                 const files = await File.sequelize.query(
