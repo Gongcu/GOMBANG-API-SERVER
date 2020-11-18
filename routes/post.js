@@ -56,14 +56,12 @@ router.get('/event',async(req,res,next)=>{
 */
 //POSTMAN:이벤트 조회@
 router.get('/event',async(req,res,next)=>{
-    let transaction;
     try{
-        const events = await Post.sequelize.query(`SELECT id FROM posts WHERE isEvent=true`,{transaction:transaction});
+        const events = await Post.sequelize.query(`SELECT id FROM posts WHERE isEvent=true`);
         if(events[0].length){
             for(var i=0; i<events[0].length; i++){
                 const banner = await File.findOne({
-                    where:{id:events[0][i].id, type:'banner'},
-                    transaction:transaction
+                    where:{id:events[0][i].id, type:'banner'}
                 })
                 events[0][i].banner = banner.name;
             }

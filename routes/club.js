@@ -5,6 +5,7 @@ const Post = require('../models/post');
 const Club = require('../models/club');
 const Club_user = require('../models/club_user');
 const Club_hashtag= require('../models/club_hashtag');
+const User_favorite_club= require('../models/user_favorite_club');
 const Hashtag= require('../models/hashtag');
 const multer = require('multer');
 const path = require('path');
@@ -24,7 +25,7 @@ const fs = require('fs');
 var appDir = path.dirname(require.main.filename);
 const router = express.Router();
 
-//POSTMAN 검색탭의 동아리 리스트@
+//POSTMAN 전체 동아리 리스트@
 router.get('/',async(req,res,next)=>{
     try{
         var club = await Club.findAll({
@@ -46,6 +47,7 @@ router.get('/',async(req,res,next)=>{
         next(err);
     }
 });
+
 
 //POSTMAN 특정 동아리 상세 정보@
 router.get('/:clubId',async(req,res,next)=>{
@@ -69,22 +71,33 @@ router.get('/:clubId',async(req,res,next)=>{
     }
 });
 
-//POSTMAN 캠퍼스별 동아리 리스트@
-router.get('/campus/:campus',async(req,res,next)=>{
+
+
+//POSTMAN 캠퍼스,타입별 동아리 리스트@
+router.get('/:campus/:type/:userId',async(req,res,next)=>{
     try{
-        var club = await Club.findAll({
-            where:{campus:req.params.campus},
-            raw:true
-        });
-        if(club.length){
-            for(var i=0; i<club.length; i++){
-                var hashtags = await Club_hashtag.sequelize.query(
+        let club = await Club.sequelize.query(
+            `SELECT id,name,image,recruitment,classification `+
+            `FROM clubs WHERE campus LIKE '${req.params.campus}' AND type LIKE '${req.params.type}'`
+        )
+        if(club[0].length){
+            for(var i=0; i<club[0].length; i++){
+                let hashtags = await Club_hashtag.sequelize.query(
                     `SELECT ch.hashtagId, h.hashtag `+
-                    `FROM club_hashtags ch join hashtags h on ch.hashtagId=h.id WHERE ch.clubId=${club[i].id}`
+                    `FROM club_hashtags ch join hashtags h on ch.hashtagId=h.id WHERE ch.clubId=${club[0][i].id}`
                 )
-                club[i].hashtags=hashtags[0];
+                let favorite = await User_favorite_club.findOne({
+                    where:{userId:req.params.userId, clubId:club[0][i].id}
+                });
+
+                club[0][i].hashtags=hashtags[0];
+    
+                if(favorite)
+                    club[0][i].favorite=1;
+                else
+                    club[0][i].favorite=0;
             }
-            res.status(200).send(club);
+            res.status(200).send(club[0]);
         }else{
             res.status(204).send();
         }
