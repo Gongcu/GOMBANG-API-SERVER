@@ -3,10 +3,13 @@ function fcmPushGenerator(token, content, id, type) {
         return;
     const admin = require('./admin')
     const message = {
+        notification:{
+            title: '곰방',
+            body: content
+        },
         data: {
-            message: content,
-            id: id.toString(), //club, post, chatroom, application, Q&A
-            type: type //보여줄 layout 
+            type: type, //보여줄 layout 
+            id: id.toString() //club, post, chatroom, application, Q&A
         },
         tokens: token
     };
