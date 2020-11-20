@@ -17,7 +17,6 @@ const search = require('./routes/search')
 const alarm = require('./routes/alarm')
 const file = require('./routes/file')
 
-
  // 소켓 start
 const http = require('http');
 const server = http.createServer(app);
@@ -44,7 +43,6 @@ app.use('/search', search);
 app.use('/alarm', alarm);
 app.use('/file', file);
 
-// error handler
 app.use(function (err, req, res, next) {
     res.status(400).send({Error:err.message});
 });
