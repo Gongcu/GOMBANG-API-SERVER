@@ -361,18 +361,21 @@ router.post('/:postId/comment',async(req,res,next)=>{
             transaction:transaction
         })
         let name;
+        let trigUserId;
         if(post.isEvent){
             const user = await User.findOne({
-                where:{id:req.body.userId},attributes:['name'],
+                where:{id:req.body.userId},attributes:['id','name'],
                 transaction:transaction
             });
             name=user.name;
+            trigUserId=user.id;
         }else{
             const club_user = await Club_user.findOne({
-                where:{userId:req.body.userId},attributes:['nickname'],
+                where:{userId:req.body.userId,clubId:post.clubId},attributes:['userId','nickname'],
                 transaction:transaction
             })
             name=club_user.nickname;
+            trigUserId=club_user.userId;
         }
 
         //댓글 작성
@@ -397,6 +400,7 @@ router.post('/:postId/comment',async(req,res,next)=>{
             token[i]= comment_user[0][i].token;
             await Alarm.create({
                 userId:comment_user[0][i].userId,
+                triggerUserId:trigUserId,
                 content:`${name}님이 게시글에 댓글을 작성했습니다.`,
                 postId:comment.postId,
                 commentId:comment.id,
@@ -405,21 +409,32 @@ router.post('/:postId/comment',async(req,res,next)=>{
         }
         //게시글 작성자에게 알람 - 자신이 댓글단 경우만 제외
         if (post.userId != comment.userId){
-            const writer = await User.sequelize.query(
-                `SELECT u.token FROM users u join club_users cu on u.id=cu.userId `+
-                `WHERE u.id=${post.userId} and u.pushAlarm=true and cu.alarm=true and cu.clubId=${post.clubId}`,
-                {transaction:transaction}
-            )
-            token[comment_user[0].length]= writer[0][0].token;
+            let writerToken;
+            if(post.isEvent){
+                let writer = await User.findOne({
+                    where:{id:post.userId,pushAlarm:true},
+                    transaction:transaction
+                })
+                writerToken=writer.token;
+            }else{
+                let writer = await User.sequelize.query(
+                    `SELECT u.token FROM users u join club_users cu on u.id=cu.userId `+
+                    `WHERE u.id=${post.userId} and u.pushAlarm=true and cu.alarm=true and cu.clubId=${post.clubId}`,
+                    {transaction:transaction}
+                )
+                writerToken = writer[0][0].token;
+            }
+            token[comment_user[0].length]= writerToken;
             await Alarm.create({
                 userId: post.userId,
+                triggerUserId:trigUserId,
                 content: `${name}님이 게시글에 댓글을 작성했습니다.`,
                 postId: comment.postId,
                 commentId: comment.id,
                 clubId: post.clubId
             }, { transaction: transaction })
         }
-        fcmPushGenerator(token,`${name}님이 게시글에 댓글을 작성했습니다.`,comment.id,"comment");
+        fcmPushGenerator(token,`${name}님이 게시글에 댓글을 작성했습니다.`,post.id,"post");
         await transaction.commit();
         res.status(200).send(comment);
     }catch(err){
@@ -520,6 +535,38 @@ router.patch('/:postId/like', async (req, res, next) => {
             where: { postId: req.params.postId, userId: req.body.userId }
         }).then(async (result) => {
             if(result[1]){
+                let name, trigUserId;
+                const writer = await User.sequelize.query(
+                    `SELECT u.token, p.id postId, u.id userId, p.clubId, p.isEvent `+
+                    `FROM posts p join users u on p.userId=u.id `+
+                    `WHERE p.id=${req.params.postId}`
+                );
+
+                if (writer[0][0].isEvent) {
+                    let liker = await User.findOne({
+                        where: { id: req.body.userId }, attributes: ['id','name']
+                    });
+                    name = liker.name;
+                    trigUserId = liker.id;
+                }
+                else {
+                    let liker = await Club_user.findOne({
+                        where: { userId: req.body.userId, clubId: writer[0][0].clubId }, attributes: ['userId','nickname']
+                    });
+
+                    name = liker.nickname;
+                    trigUserId = liker.userId;
+                }
+                await Alarm.create({
+                    userId: writer[0][0].userId,
+                    triggerUserId: trigUserId,
+                    content: `${name}님이 회원님의 게시물을 좋아합니다.`,
+                    postId: writer[0][0].postId,
+                    clubId: writer[0][0].clubId
+                });
+
+                fcmPushGenerator(new Array(writer[0][0].token), `${name}님이 회원님의 게시물을 좋아합니다.`, writer[0][0].postId, "post");
+
                 res.status(200).send(true)
             }else{
                 await Like.destroy({

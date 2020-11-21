@@ -95,7 +95,7 @@ router.post('/:clubId', async (req, res, next) => {
             },{transaction:transaction});
         }
 
-        fcmPushGenerator(token, "새로운 가입 신청서가 작성되었습니다.",applicationform.clubId,"application")
+        fcmPushGenerator(token, "새로운 가입 신청서가 작성되었습니다.",applicationform.id,"application")
 
         await transaction.commit()
         res.status(200).send(applicationform);
@@ -187,7 +187,7 @@ router.delete('/:applicationFormId',async(req,res,next)=>{
 
         var token = new Array()
         token[0]=user[0][0].token
-        fcmPushGenerator(token, "가입신청이 거부되었습니다.",deleteForm.clubId,"application")
+        fcmPushGenerator(token, "가입신청이 거부되었습니다.",deleteForm.clubId,"club")
 
         await transaction.commit()
         

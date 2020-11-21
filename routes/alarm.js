@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const Alarm= require('../models/alarm');
+const updateRow= require('../etc/updateRow');
 
 //POSTMAN: 유저의 알림@
 router.get('/:userId',async(req,res,next)=>{
     try{
-        const alarm = await Alarm.sequelize.query(`SELECT COALESCE(c.image,u.image) as image, COALESCE(c.name, '이벤트') as title, a.content, a.isChecked, a.createdAt `+
-        `FROM alarms a left join clubs c on a.clubId=c.id left join comments cm on a.commentId=cm.id left join users u on cm.userId=u.id `+
-        `WHERE a.userId=${req.params.userId}`);
+        const alarm = await Alarm.sequelize.query(
+            `SELECT COALESCE(uu.image,c.image) as image, COALESCE(c.name, '이벤트') as title, a.content, a.isChecked, a.clubId, a.postId, a.applicationFormId,a.triggerUserId, a.createdAt `+
+            `FROM alarms a left join clubs c on a.clubId=c.id left join comments cm on a.commentId=cm.id left join (SELECT u.id, u.image FROM users u) uu on a.triggerUserId=uu.id `+
+            `WHERE a.userId=${req.params.userId}`
+        );
+        'SELECT u.image FROM users u WHERE u.id = '
         if(alarm[0].length)
             res.status(200).send(alarm[0]);
         else

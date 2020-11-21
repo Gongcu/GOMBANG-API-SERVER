@@ -31,6 +31,7 @@ module.exports = class Alarm extends Sequelize.Model{
     }
     static associate(db){
         db.Alarm.belongsTo(db.User,{foreignKey:'userId',targetKey:'id'});
+        db.Alarm.belongsTo(db.User,{foreignKey:'triggerUserId',targetKey:'id'});
         db.Alarm.belongsTo(db.Club,{foreignKey:'clubId',targetKey:'id'}); //공지사항, 이벤트, 댓글
         db.Alarm.belongsTo(db.Post,{foreignKey:'postId',targetKey:'id'}); //공지사항, 이벤트, 댓글
         db.Alarm.belongsTo(db.Comment,{foreignKey:'commentId',targetKey:'id'}); //댓글
