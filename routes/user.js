@@ -161,6 +161,41 @@ router.patch('/:userId/profile',uploader.single('image'),async(req,res,next)=>{
     }
 });
 
+//POSTMAN: 전화번호 변경@
+router.patch('/:userId/phone',async(req,res,next)=>{
+    try{
+        const user = await User.findOne({
+            where:{id:req.params.userId}
+        });
+        if(user){
+            user.phone = req.body.phone;
+            await user.save();
+            res.status(200).send(user.phone);
+        }else
+            res.status(204).send();
+    }catch(err){
+        console.log(err);
+        next(err);
+    }
+});
+
+//POSTMAN: 생년월일 변경@
+router.patch('/:userId/birth',async(req,res,next)=>{
+    try{
+        const user = await User.findOne({
+            where:{id:req.params.userId}
+        });
+        if(user){
+            user.birth = req.body.birth;
+            await user.save();
+            res.status(200).send(user.birth);
+        }else
+            res.status(204).send();
+    }catch(err){
+        next(err);
+    }
+});
+
 //POSTMAN: 동아리 즐겨찾기 추가/삭제
 router.patch('/:userId/favorite_club_list',async(req,res,next)=>{
     let transaction;

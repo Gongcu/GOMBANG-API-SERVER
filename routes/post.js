@@ -38,7 +38,10 @@ router.get('/event',async(req,res,next)=>{
                 const banner = await File.findOne({
                     where:{id:events[0][i].id, type:'banner'}
                 })
-                events[0][i].banner = banner.name;
+                if(banner)
+                    events[0][i].banner = banner.name;
+                else
+                    events[0][i].banner = "";
             }
             res.status(200).send(events[0]);
         }else
@@ -94,7 +97,7 @@ router.get('/:postId/detail',async(req,res,next)=>{
                 `FROM likes l join users u on l.userId=u.id WHERE l.postId=${req.params.postId}`
             )
             var comments = await Comment.sequelize.query(
-                `SELECT u.id, u.name, u.image, c.comment, c.createdAt `+
+                `SELECT c.id ,u.id userId, u.name, u.image, c.comment, c.createdAt `+
                 `FROM comments c join users u on c.userId=u.id WHERE c.postId=${req.params.postId} order by c.createdAt asc`
             )
        
@@ -121,7 +124,7 @@ router.get('/:postId/detail',async(req,res,next)=>{
 router.get('/:postId/comment',async(req,res,next)=>{
     try{
         const comments = await Comment.sequelize.query(
-            `SELECT u.id, u.name, u.image, c.comment, c.createdAt `+
+            `SELECT c.id, u.id userId, u.name, u.image, c.comment, c.createdAt `+
             `FROM comments c join users u on c.userId=u.id WHERE c.postId=${req.params.postId} order by c.createdAt asc`
         )
         if(comments[0].length){
