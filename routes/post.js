@@ -32,19 +32,13 @@ const uploader = multer({
 //POSTMAN:이벤트 조회@
 router.get('/event',async(req,res,next)=>{
     try{
-        const events = await Post.sequelize.query(`SELECT id FROM posts WHERE isEvent=true`);
-        if(events[0].length){
-            for(var i=0; i<events[0].length; i++){
-                const banner = await File.findOne({
-                    where:{id:events[0][i].id, type:'banner'}
-                })
-                if(banner)
-                    events[0][i].banner = banner.name;
-                else
-                    events[0][i].banner = "";
-            }
+        const events = await File.sequelize.query(
+            `SELECT postId as id, name `+
+            `FROM files WHERE type LIKE 'banner'`
+        )
+        if(events)
             res.status(200).send(events[0]);
-        }else
+        else
             res.status(204).send();
     }catch(err){
         console.error(err);

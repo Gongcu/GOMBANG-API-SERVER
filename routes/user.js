@@ -269,7 +269,7 @@ router.patch('/:userId/favorite_club_list/order',async(req,res,next)=>{
 router.delete('/:userId',async(req,res,next)=>{
     try{
         const user = await User.findOne({where:{id:req.params.userId}});
-        if(user.image){
+        if(user.image !== ""){
             fs.unlink(appDir+'/upload/'+user.image, (err) => {
                 console.log(err);
             });
