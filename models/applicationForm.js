@@ -2,7 +2,7 @@ const Sequelize = require('sequelize');
 const formatDateTime = require('../etc/formatDateTime.js');
 
 module.exports = class ApplicationForm extends Sequelize.Model{
-    static init(sequelize){//동아리경험 100자 이내 유의
+    static init(sequelize){
         return super.init({
             name:{
                 type:Sequelize.STRING(30),
@@ -46,7 +46,7 @@ module.exports = class ApplicationForm extends Sequelize.Model{
                 defaultValue:"",
             },
             experience:{
-                type:Sequelize.STRING(100),
+                type:Sequelize.TEXT,
                 allowNull:false,
                 defaultValue:"",
             },

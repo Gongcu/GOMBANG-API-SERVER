@@ -5,7 +5,7 @@ module.exports = class Chat extends Sequelize.Model{
     static init(sequelize){
         return super.init({
             message:{
-                type:Sequelize.STRING,
+                type:Sequelize.TEXT,
                 allowNull:false,
                 defaultValue:""
             },

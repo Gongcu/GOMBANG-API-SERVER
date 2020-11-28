@@ -15,7 +15,7 @@ module.exports = class Post extends Sequelize.Model{
                 defaultValue:false,
             },
             text:{
-                type:Sequelize.STRING,
+                type:Sequelize.TEXT,
                 allowNull:false,
             },
             participationFee:{

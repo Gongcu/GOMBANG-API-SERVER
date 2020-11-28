@@ -5,7 +5,7 @@ module.exports = class Answer extends Sequelize.Model{
     static init(sequelize){
         return super.init({
             answer:{
-                type:Sequelize.STRING,
+                type:Sequelize.TEXT,
                 allowNull:false,
             },
             createdAt:{

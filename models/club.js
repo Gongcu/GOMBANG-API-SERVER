@@ -27,7 +27,7 @@ module.exports = class Club extends Sequelize.Model{
                 allowNull:false,
             },
             text:{
-                type:Sequelize.STRING,
+                type:Sequelize.TEXT,
                 allowNull:true,
                 defaultValue:"",
             },
