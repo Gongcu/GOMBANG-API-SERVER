@@ -387,18 +387,70 @@ router.patch('/:clubId/exposure/notice',async(req,res,next)=>{
     }
 });
 
-//POSTMAN:부회장으로 변경@
-router.patch('/:clubId/vicepresident',async(req,res,next)=>{
+//POSTMAN:회장 위임@
+router.patch('/:clubId/president',async(req,res,next)=>{
+    let transcation;
     try{
-        const user = await Club_user.findOne({where:{clubId:req.params.clubId,userId:req.body.userId}});
-        if(user){
-            user.authority ='부회장';
-            await user.save();
+        transcation = await Club_user.sequelize.transaction();
+        
+        //회장이 있다면 멤버로
+        const currUser = await Club_user.update({
+            authority:'멤버'
+        },{
+            where:{clubId:req.params.clubId,authority:'회장'},
+            transaction:transcation
+        });
+
+        //userId를 회장으로
+        const newUser = await Club_user.update({
+            authority:'회장'
+        },{
+            where:{clubId:req.params.clubId,userId:req.body.userId},
+            transaction:transcation
+        });
+        if(updateRow(newUser).result){
+            await transcation.commit();
             res.status(200).send(true);
         }else{
+            await transcation.rollback();
             res.status(204).send();
         }
     }catch(err){
+        if(transcation) await transcation.rollback();
+        console.error(err);
+        next(err);
+    }
+});
+//POSTMAN:부회장 위임@
+router.patch('/:clubId/vicepresident',async(req,res,next)=>{
+    let transcation;
+    try{
+        transcation = await Club_user.sequelize.transaction();
+        
+        //부회장이 있다면 멤버로
+        const currUser = await Club_user.update({
+            authority:'멤버'
+        },{
+            where:{clubId:req.params.clubId,authority:'부회장'},
+            transaction:transcation
+        });
+
+        //userId를 부회장으로
+        const newUser = await Club_user.update({
+            authority:'부회장'
+        },{
+            where:{clubId:req.params.clubId,userId:req.body.userId},
+            transaction:transcation
+        });
+        if(updateRow(newUser).result){
+            await transcation.commit();
+            res.status(200).send(true);
+        }else{
+            await transcation.rollback();
+            res.status(204).send();
+        }
+    }catch(err){
+        if(transcation) await transcation.rollback();
         console.error(err);
         next(err);
     }

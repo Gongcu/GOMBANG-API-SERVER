@@ -57,7 +57,7 @@ module.exports = {
       allowNull: false,
     });
 
-    await queryInterface.changeColumn('applicationForms', 'experience', {
+    await queryInterface.changeColumn('applicationforms', 'experience', {
       type:Sequelize.STRING(100),
       allowNull:false,
       defaultValue:"",
