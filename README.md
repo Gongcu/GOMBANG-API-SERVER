@@ -1,17 +1,21 @@
-## REST-API-SERVER
-## 단국대학교 Gombang 동아리 관리 어플리케이션 <img src=https://user-images.githubusercontent.com/30337408/97773497-89bdec80-1b93-11eb-82ad-cf1b8c2d9712.png heigth='3%' width='3%'>
+## 단국대학교 Gombang 동아리 관리 애플리케이션 <img src=https://user-images.githubusercontent.com/30337408/97773497-89bdec80-1b93-11eb-82ad-cf1b8c2d9712.png heigth='3%' width='3%'>
 
-현재 진행 중인 단국대학교 동아리 관리 어플리케이션의 백엔드로 사용될 Express 프레임워크를 활용한 REST-API-SERVER.
+## 소개
+해당 프로젝트는 단국대학교 동아리 관리 모바일 애플리케이션에 사용된 API 서버이다. 
+코로나로 인한 언택트 시대에 따라 동아리 활동이 매우 저조하며, 접근성 또한 매우 떨어졌다.
+이를 모바일 애플리케이션의 형태로 제공하여 학생들의 동아리 활동을 고취시킨다.
 
 ### STACK
  - Express
+ - Socket.IO
  - MySQL
  - Toast Cloud
  - FCM
  
 ### 주요 기능
- - 동아리 커뮤니티 제공
- - Socket.io를 이용한 채팅
+ - 동아리 검색 및 홍보
+ - 동아리 커뮤니티 제공(게시판 CRUD)
+ - 실시간 채팅 기능
  - 일정 관리
  
 ### 주요 UI 와이어 프레임
